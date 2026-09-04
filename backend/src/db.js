@@ -1,19 +1,18 @@
-const sqlite3 = require('sqlite3').verbose();
-const { open } = require('sqlite');
-const path = require('path');
+const { createClient } = require('@libsql/client');
+require('dotenv').config();
 
 let dbInstance = null;
 
 async function getDb() {
   if (dbInstance) return dbInstance;
-  
-  dbInstance = await open({
-    filename: path.join(__dirname, '../db/database.sqlite'),
-    driver: sqlite3.Database
+
+  const client = createClient({
+    url: process.env.TURSO_DATABASE_URL,
+    authToken: process.env.TURSO_AUTH_TOKEN
   });
 
   // Crear tablas si no existen
-  await dbInstance.exec(`
+  await client.executeMultiple(`
     CREATE TABLE IF NOT EXISTS estudiantes (
       id TEXT PRIMARY KEY,
       doc TEXT UNIQUE NOT NULL,
@@ -63,6 +62,28 @@ async function getDb() {
       fechaEliminacion TEXT
     );
   `);
+
+  // Adaptador: expone la misma API que usaba el paquete "sqlite"
+  // (db.all / db.get / db.run) para no tener que tocar las rutas.
+  dbInstance = {
+    async all(sql, params = []) {
+      const args = Array.isArray(params) ? params : [params];
+      const res = await client.execute({ sql, args });
+      return res.rows.map(row => ({ ...row }));
+    },
+
+    async get(sql, params = []) {
+      const args = Array.isArray(params) ? params : [params];
+      const res = await client.execute({ sql, args });
+      return res.rows[0] ? { ...res.rows[0] } : undefined;
+    },
+
+    async run(sql, params = []) {
+      const args = Array.isArray(params) ? params : [params];
+      const res = await client.execute({ sql, args });
+      return { lastID: res.lastInsertRowid, changes: res.rowsAffected };
+    }
+  };
 
   return dbInstance;
 }

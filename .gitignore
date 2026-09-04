@@ -1,0 +1,19 @@
+# Dependencias
+node_modules/
+**/node_modules/
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+
+# Base de datos local (SQLite ya no se usa en producción, solo si corres local)
+backend/db/*.sqlite
+backend/db/*.sqlite-journal
+
+# Build de frontend
+frontend/dist/
+
+# Logs / sistema
+*.log
+.DS_Store
