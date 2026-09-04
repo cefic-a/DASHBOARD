@@ -1,7 +1,7 @@
-const Database = require('better-sqlite3');
+const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-const db = new Database(path.join(__dirname, '../db/database.sqlite'));
+const db = new sqlite3.Database(path.join(__dirname, '../db/database.sqlite'));
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS estudiantes (
