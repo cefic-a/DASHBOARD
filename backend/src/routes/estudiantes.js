@@ -1,25 +1,31 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const { getDb } = require('../db');
 
 // Obtener todos los estudiantes (con sus grupos)
-router.get('/', (req, res) => {
-  const estudiantes = db.prepare('SELECT * FROM estudiantes').all();
-  const result = estudiantes.map(est => {
-    const grupos = db.prepare(`
-      SELECT g.id, g.nombre 
-      FROM grupos g
-      JOIN estudiante_grupo eg ON eg.grupo_id = g.id
-      WHERE eg.estudiante_id = ?
-    `).all(est.id);
-    return { ...est, gruposIds: grupos.map(g => g.id) };
-  });
-  res.json(result);
+router.get('/', async (req, res) => {
+  try {
+    const db = await getDb();
+    const estudiantes = await db.all('SELECT * FROM estudiantes');
+    const result = [];
+    for (const est of estudiantes) {
+      const grupos = await db.all(`
+        SELECT g.id, g.nombre 
+        FROM grupos g
+        JOIN estudiante_grupo eg ON eg.grupo_id = g.id
+        WHERE eg.estudiante_id = ?
+      `, est.id);
+      result.push({ ...est, gruposIds: grupos.map(g => g.id) });
+    }
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Crear estudiante (POST)
-router.post('/', (req, res) => {
-  // Extraer TODOS los campos del body
+router.post('/', async (req, res) => {
   const {
     id,
     doc,
@@ -39,14 +45,13 @@ router.post('/', (req, res) => {
   } = req.body;
 
   try {
-    // Insertar en la tabla estudiantes
-    const stmt = db.prepare(`
+    const db = await getDb();
+    await db.run(`
       INSERT INTO estudiantes (
         id, doc, tipodoc, apellidos, nombres, genero, fechaNacimiento,
         eps, discapacidad, activo, grado, idioma, caminoSol, caminoLuna
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    stmt.run(
+    `, [
       id,
       doc,
       tipodoc,
@@ -61,13 +66,11 @@ router.post('/', (req, res) => {
       idioma || null,
       caminoSol || null,
       caminoLuna || null
-    );
+    ]);
 
-    // Asignar grupos personalizados (si existen)
     if (gruposIds && gruposIds.length) {
-      const insertGrupo = db.prepare(`INSERT INTO estudiante_grupo (estudiante_id, grupo_id) VALUES (?, ?)`);
       for (const gid of gruposIds) {
-        insertGrupo.run(id, gid);
+        await db.run(`INSERT INTO estudiante_grupo (estudiante_id, grupo_id) VALUES (?, ?)`, [id, gid]);
       }
     }
 
@@ -79,7 +82,7 @@ router.post('/', (req, res) => {
 });
 
 // Actualizar estudiante (PUT)
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   const { id } = req.params;
   const {
     doc,
@@ -99,7 +102,8 @@ router.put('/:id', (req, res) => {
   } = req.body;
 
   try {
-    const stmt = db.prepare(`
+    const db = await getDb();
+    await db.run(`
       UPDATE estudiantes SET
         doc = ?,
         tipodoc = ?,
@@ -115,8 +119,7 @@ router.put('/:id', (req, res) => {
         caminoSol = ?,
         caminoLuna = ?
       WHERE id = ?
-    `);
-    stmt.run(
+    `, [
       doc,
       tipodoc,
       apellidos,
@@ -131,14 +134,12 @@ router.put('/:id', (req, res) => {
       caminoSol || null,
       caminoLuna || null,
       id
-    );
+    ]);
 
-    // Actualizar grupos personalizados
-    db.prepare(`DELETE FROM estudiante_grupo WHERE estudiante_id = ?`).run(id);
+    await db.run(`DELETE FROM estudiante_grupo WHERE estudiante_id = ?`, [id]);
     if (gruposIds && gruposIds.length) {
-      const insertGrupo = db.prepare(`INSERT INTO estudiante_grupo (estudiante_id, grupo_id) VALUES (?, ?)`);
       for (const gid of gruposIds) {
-        insertGrupo.run(id, gid);
+        await db.run(`INSERT INTO estudiante_grupo (estudiante_id, grupo_id) VALUES (?, ?)`, [id, gid]);
       }
     }
 
@@ -150,24 +151,22 @@ router.put('/:id', (req, res) => {
 });
 
 // Eliminar (mover a eliminados con motivo)
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   const { id } = req.params;
   const { motivo } = req.body;
 
   try {
-    // Obtener el estudiante antes de borrarlo
-    const estudiante = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(id);
+    const db = await getDb();
+    const estudiante = await db.get('SELECT * FROM estudiantes WHERE id = ?', [id]);
     if (!estudiante) return res.status(404).json({ error: 'Estudiante no encontrado' });
 
-    // Insertar en la tabla de eliminados (con todos los campos, incluyendo los nuevos)
-    const insertElim = db.prepare(`
+    await db.run(`
       INSERT INTO estudiantes_eliminados (
         id, doc, tipodoc, apellidos, nombres, genero, fechaNacimiento,
         eps, discapacidad, activo, grado, idioma, caminoSol, caminoLuna,
         motivo, fechaEliminacion
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    insertElim.run(
+    `, [
       estudiante.id,
       estudiante.doc,
       estudiante.tipodoc,
@@ -184,11 +183,10 @@ router.delete('/:id', (req, res) => {
       estudiante.caminoLuna || null,
       motivo,
       new Date().toISOString()
-    );
+    ]);
 
-    // Eliminar de la tabla principal y sus relaciones
-    db.prepare(`DELETE FROM estudiante_grupo WHERE estudiante_id = ?`).run(id);
-    db.prepare(`DELETE FROM estudiantes WHERE id = ?`).run(id);
+    await db.run(`DELETE FROM estudiante_grupo WHERE estudiante_id = ?`, [id]);
+    await db.run(`DELETE FROM estudiantes WHERE id = ?`, [id]);
 
     res.json({ message: 'Estudiante eliminado (movido a histórico)' });
   } catch (err) {
