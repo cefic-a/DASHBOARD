@@ -285,7 +285,7 @@ const StudentTable = ({ students, groups, onAdd, onEdit, onDelete, onAddGroup, o
             <tr key={student.doc} className="border-t hover:bg-gray-50">
               <td className="px-3 py-2">{student.doc}</td>
               {/* Cambio aquí: Nombres primero, luego Apellidos, sin truncar, con whitespace-normal */}
-              <td className="px-3 py-2 whitespace-normal break-words" style={{ maxWidth: '250px' }}>
+              <td className="px-3 py-2 whitespace-normal break-words" style={{ maxWidth: '300px' }}>
                 {`${student.nombres || ''} ${student.apellidos || ''}`}
               </td>
               <td className="px-3 py-2">{student.genero === 'MASCULINO' ? 'M' : 'F'}</td>
@@ -304,13 +304,13 @@ const StudentTable = ({ students, groups, onAdd, onEdit, onDelete, onAddGroup, o
               <td className="px-3 py-2 whitespace-normal break-words" style={{ maxWidth: '120px' }}>
                 {student.caminoLuna || '—'}
               </td>
-              <td className="px-3 py-2">
+              <td className="px-3 py-2 whitespace-normal break-words" style={{ maxWidth: '120px' }}>
                 {student.gruposIds && student.gruposIds.map(gid => {
                   const group = groups.find(g => g.id === gid);
                   return group ? <span key={gid} className="inline-block bg-gray-120 rounded px-2 py-0.5 text-xs mr-1 mb-1">{group.nombre}</span> : null;
                 })}
               </td>
-              <td className="px-3 py-2 text-center">
+              <td className="px-3 py-0.5 text-center">
                 <span className={`inline-block w-3 h-3 rounded-full ${student.activo ? 'bg-green-500' : 'bg-red-500'}`} title={student.activo ? 'Activo' : 'Inactivo'}></span>
               </td>
               <td className="px-3 py-2 text-center">
