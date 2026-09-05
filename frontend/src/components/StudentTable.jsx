@@ -266,7 +266,7 @@ const StudentTable = ({ students, groups, onAdd, onEdit, onDelete, onAddGroup, o
         <thead className="bg-gray-100">
           <tr>
             <th className="px-3 py-3 text-left w-[10%]">Documento</th>
-            <th className="px-3 py-3 text-left w-[25%]">Nombres y Apellidos</th> {/* Cambio de título */}
+            <th className="px-3 py-3 text-left w-[25%]">Nombre Completo</th> {/* Cambio de título */}
             <th className="px-3 py-3 text-left w-[5%]">Género</th>
             <th className="px-3 py-3 text-left w-[10%]">Fecha nac.</th>
             <th className="px-3 py-3 text-left w-[5%]">Edad</th>
