@@ -127,6 +127,9 @@ const StudentTable = ({ students, groups, onAdd, onEdit, onDelete, onAddGroup, o
 
       // Mapear columnas del Excel a campos de la base de datos
       for (const row of rows) {
+        // Saltar filas vacías (sin documento, apellidos ni nombres)
+        if (!row['Documento'] && !row['Apellidos'] && !row['Nombres']) continue;
+
         const estudiante = {
           id: `s${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
           doc: String(row['Documento'] || ''),
