@@ -266,17 +266,17 @@ const StudentTable = ({ students, groups, onAdd, onEdit, onDelete, onAddGroup, o
         <thead className="bg-gray-100">
           <tr>
             <th className="px-3 py-3 text-left w-[10%]">Documento</th>
-            <th className="px-3 py-3 text-left w-[30%]">Nombre Completo</th> {/* Cambio de título */}
+            <th className="px-3 py-3 text-left w-[35%]">Nombre Completo</th> {/* Cambio de título */}
             <th className="px-3 py-3 text-left w-[5%]">Género</th>
             <th className="px-3 py-3 text-left w-[10%]">Fecha nac.</th>
             <th className="px-3 py-3 text-left w-[5%]">Edad</th>
-            <th className="px-3 py-3 text-left w-[4%]">EPS</th>
+            <th className="px-3 py-3 text-left">EPS</th>
             <th className="px-3 py-3 text-left w-[6%]">Discap.</th>
             <th className="px-3 py-3 text-left w-[6%]">Nees Wewnxi</th>
             <th className="px-3 py-3 text-left w-[8%]">Camino Sol</th>
             <th className="px-3 py-3 text-left w-[8%]">Camino Luna</th>
             <th className="px-3 py-3 text-left w-[10%]">Grupos</th>
-            <th className="px-3 py-3 text-center w-[5%]">Estado</th>
+            <th className="px-3 py-3 text-center w-[3%]">Estado</th>
             <th className="px-3 py-3 text-center w-[8%]">Acciones</th>
           </tr>
         </thead>
@@ -285,7 +285,7 @@ const StudentTable = ({ students, groups, onAdd, onEdit, onDelete, onAddGroup, o
             <tr key={student.doc} className="border-t hover:bg-gray-50">
               <td className="px-3 py-2">{student.doc}</td>
               {/* Cambio aquí: Nombres primero, luego Apellidos, sin truncar, con whitespace-normal */}
-              <td className="px-3 py-2 whitespace-normal break-words" style={{ maxWidth: '400px' }}>
+              <td className="px-3 py-2 whitespace-normal break-words" style={{ maxWidth: '200px' }}>
                 {`${student.nombres || ''} ${student.apellidos || ''}`}
               </td>
               <td className="px-3 py-2">{student.genero === 'MASCULINO' ? 'M' : 'F'}</td>
