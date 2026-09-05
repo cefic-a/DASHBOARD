@@ -133,6 +133,7 @@ const StudentTable = ({ students, groups, onAdd, onEdit, onDelete, onAddGroup, o
           tipodoc: row['TipoDocumento'] || 'RC',
           apellidos: String(row['Apellidos'] || ''),
           nombres: String(row['Nombres'] || ''),
+          eps: row['EPS'] || '',
           genero: row['Genero'] === 'F' ? 'FEMENINO' : 'MASCULINO',
           fechaNacimiento: row['FechaNacimiento'] 
           ? (() => {
