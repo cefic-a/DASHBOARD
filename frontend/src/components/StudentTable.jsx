@@ -266,16 +266,16 @@ const StudentTable = ({ students, groups, onAdd, onEdit, onDelete, onAddGroup, o
         <thead className="bg-gray-100">
           <tr>
             <th className="px-3 py-3 text-left w-[10%]">Documento</th>
-            <th className="px-3 py-3 text-left w-[25%]">Nombre Completo</th> {/* Cambio de título */}
+            <th className="px-3 py-3 text-left w-[30%]">Nombre Completo</th> {/* Cambio de título */}
             <th className="px-3 py-3 text-left w-[5%]">Género</th>
             <th className="px-3 py-3 text-left w-[10%]">Fecha nac.</th>
             <th className="px-3 py-3 text-left w-[5%]">Edad</th>
-            <th className="px-3 py-3 text-left w-[5%]">EPS</th>
+            <th className="px-3 py-3 text-left w-[4%]">EPS</th>
             <th className="px-3 py-3 text-left w-[6%]">Discap.</th>
-            <th className="px-3 py-3 text-left w-[6%]">Idioma</th>
+            <th className="px-3 py-3 text-left w-[6%]">Nees Wewnxi</th>
             <th className="px-3 py-3 text-left w-[8%]">Camino Sol</th>
             <th className="px-3 py-3 text-left w-[8%]">Camino Luna</th>
-            <th className="px-3 py-3 text-left w-[12%]">Grupos</th>
+            <th className="px-3 py-3 text-left w-[10%]">Grupos</th>
             <th className="px-3 py-3 text-center w-[5%]">Estado</th>
             <th className="px-3 py-3 text-center w-[8%]">Acciones</th>
           </tr>
@@ -285,13 +285,13 @@ const StudentTable = ({ students, groups, onAdd, onEdit, onDelete, onAddGroup, o
             <tr key={student.doc} className="border-t hover:bg-gray-50">
               <td className="px-3 py-2">{student.doc}</td>
               {/* Cambio aquí: Nombres primero, luego Apellidos, sin truncar, con whitespace-normal */}
-              <td className="px-3 py-2 whitespace-normal break-words" style={{ maxWidth: '200px' }}>
+              <td className="px-3 py-2 whitespace-normal break-words" style={{ maxWidth: '250px' }}>
                 {`${student.nombres || ''} ${student.apellidos || ''}`}
               </td>
               <td className="px-3 py-2">{student.genero === 'MASCULINO' ? 'M' : 'F'}</td>
               <td className="px-3 py-2">{formatFecha(student.fechaNacimiento)}</td>
               <td className="px-3 py-2">{calcularEdad(student.fechaNacimiento)}</td>
-              <td className="px-3 py-2 truncate max-w-[100px]">{student.eps}</td>
+              <td className="px-3 py-2">{student.eps}</td>
               <td className="px-3 py-2">
                 <span className={`px-2 py-0.5 rounded-full text-xs ${student.discapacidad === 'SI' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
                   {student.discapacidad === 'SI' ? 'Sí' : 'No'}
@@ -307,7 +307,7 @@ const StudentTable = ({ students, groups, onAdd, onEdit, onDelete, onAddGroup, o
               <td className="px-3 py-2">
                 {student.gruposIds && student.gruposIds.map(gid => {
                   const group = groups.find(g => g.id === gid);
-                  return group ? <span key={gid} className="inline-block bg-gray-100 rounded px-2 py-0.5 text-xs mr-1 mb-1">{group.nombre}</span> : null;
+                  return group ? <span key={gid} className="inline-block bg-gray-120 rounded px-2 py-0.5 text-xs mr-1 mb-1">{group.nombre}</span> : null;
                 })}
               </td>
               <td className="px-3 py-2 text-center">
