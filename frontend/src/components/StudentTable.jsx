@@ -266,16 +266,16 @@ const StudentTable = ({ students, groups, onAdd, onEdit, onDelete, onAddGroup, o
         <thead className="bg-gray-100">
           <tr>
             <th className="px-3 py-3 text-left w-[10%]">Documento</th>
-            <th className="px-3 py-3 text-left w-[20%]">Nombres y Apellidos</th> {/* Cambio de título */}
-            <th className="px-3 py-3 text-left w-[6%]">Género</th>
+            <th className="px-3 py-3 text-left w-[25%]">Nombres y Apellidos</th> {/* Cambio de título */}
+            <th className="px-3 py-3 text-left w-[5%]">Género</th>
             <th className="px-3 py-3 text-left w-[10%]">Fecha nac.</th>
             <th className="px-3 py-3 text-left w-[5%]">Edad</th>
-            <th className="px-3 py-3 text-left w-[10%]">EPS</th>
+            <th className="px-3 py-3 text-left w-[5%]">EPS</th>
             <th className="px-3 py-3 text-left w-[6%]">Discap.</th>
             <th className="px-3 py-3 text-left w-[6%]">Idioma</th>
             <th className="px-3 py-3 text-left w-[8%]">Camino Sol</th>
             <th className="px-3 py-3 text-left w-[8%]">Camino Luna</th>
-            <th className="px-3 py-3 text-left w-[10%]">Grupos</th>
+            <th className="px-3 py-3 text-left w-[12%]">Grupos</th>
             <th className="px-3 py-3 text-center w-[5%]">Estado</th>
             <th className="px-3 py-3 text-center w-[8%]">Acciones</th>
           </tr>
