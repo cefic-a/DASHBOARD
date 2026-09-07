@@ -5,26 +5,36 @@ import StatsCards from './components/StatsCards';
 import StudentTable from './components/StudentTable';
 import AnalyticsCharts from './components/AnalyticsCharts';
 import DeletedStudentsTable from './components/DeletedStudentsTable';
-import { fetchStudents, fetchGroups, createStudent, updateStudent, deleteStudent, createGroup, updateGroup, deleteGroup, fetchEliminados, restoreStudent, permanentDelete } from './services/api';
+import AcudientesTable from './components/AcudientesTable';
+import Login from './components/Login';
+import {
+  fetchStudents, fetchGroups, createStudent, updateStudent, deleteStudent,
+  createGroup, updateGroup, deleteGroup, fetchEliminados, restoreStudent, permanentDelete,
+  fetchAcudientes, createAcudiente, updateAcudiente, deleteAcudiente
+} from './services/api';
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
   const [students, setStudents] = useState([]);
   const [groups, setGroups] = useState([]);
   const [eliminados, setEliminados] = useState([]);
+  const [acudientes, setAcudientes] = useState([]);
   const [activeTab, setActiveTab] = useState('students');
   const [loading, setLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const loadData = async () => {
     try {
-      const [estudiantes, grupos, eliminadosList] = await Promise.all([
+      const [estudiantes, grupos, eliminadosList, acudientesList] = await Promise.all([
         fetchStudents(),
         fetchGroups(),
-        fetchEliminados()
+        fetchEliminados(),
+        fetchAcudientes()
       ]);
       setStudents(estudiantes);
       setGroups(grupos);
       setEliminados(eliminadosList);
+      setAcudientes(acudientesList);
     } catch (error) {
       console.error('Error cargando datos:', error);
     } finally {
@@ -33,8 +43,8 @@ function App() {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (isAuthenticated) loadData();
+  }, [isAuthenticated]);
 
   const addStudent = async (student) => {
     try {
@@ -112,9 +122,51 @@ function App() {
     await loadData();
   };
 
+  const addAcudiente = async (acudiente) => {
+    try {
+      await createAcudiente(acudiente);
+      await loadData();
+    } catch (error) {
+      console.error('Error al crear acudiente:', error);
+      alert(`No se pudo crear el acudiente: ${error.message}`);
+      throw error;
+    }
+  };
+
+  const editAcudiente = async (acudiente) => {
+    try {
+      await updateAcudiente(acudiente.id, acudiente);
+      await loadData();
+    } catch (error) {
+      console.error('Error al actualizar acudiente:', error);
+      alert(`No se pudo actualizar el acudiente: ${error.message}`);
+      throw error;
+    }
+  };
+
+  const removeAcudiente = async (id) => {
+    try {
+      await deleteAcudiente(id);
+      await loadData();
+    } catch (error) {
+      console.error('Error al eliminar acudiente:', error);
+      alert(`No se pudo eliminar el acudiente: ${error.message}`);
+      throw error;
+    }
+  };
+
   const toggleSidebar = () => {
     setSidebarCollapsed(prev => !prev);
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
+  };
+
+  if (!isAuthenticated) {
+    return <Login onLogin={() => setIsAuthenticated(true)} />;
+  }
 
   if (loading) return <div className="flex items-center justify-center h-screen">Cargando...</div>;
 
@@ -122,7 +174,7 @@ function App() {
     <div className="flex h-screen bg-gray-100">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} collapsed={sidebarCollapsed} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Navbar onToggleSidebar={toggleSidebar} />
+        <Navbar onToggleSidebar={toggleSidebar} onLogout={handleLogout} />
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           {activeTab === 'students' && (
             <>
@@ -142,6 +194,15 @@ function App() {
             </>
           )}
           {activeTab === 'charts' && <AnalyticsCharts students={students} groups={groups} />}
+          {activeTab === 'acudientes' && (
+            <AcudientesTable
+              acudientes={acudientes}
+              students={students}
+              onAdd={addAcudiente}
+              onEdit={editAcudiente}
+              onDelete={removeAcudiente}
+            />
+          )}
           {activeTab === 'deleted' && (
             <DeletedStudentsTable
               deleted={eliminados}

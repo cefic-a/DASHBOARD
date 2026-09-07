@@ -61,6 +61,23 @@ async function getDb() {
       motivo TEXT,
       fechaEliminacion TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS acudientes (
+      id TEXT PRIMARY KEY,
+      nombres TEXT NOT NULL,
+      documento TEXT,
+      parentesco TEXT,
+      telefono TEXT,
+      direccion TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS acudiente_estudiante (
+      acudiente_id TEXT,
+      estudiante_id TEXT,
+      PRIMARY KEY (acudiente_id, estudiante_id),
+      FOREIGN KEY (acudiente_id) REFERENCES acudientes(id) ON DELETE CASCADE,
+      FOREIGN KEY (estudiante_id) REFERENCES estudiantes(id) ON DELETE CASCADE
+    );
   `);
 
   // Adaptador: expone la misma API que usaba el paquete "sqlite"

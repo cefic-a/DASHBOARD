@@ -186,6 +186,7 @@ router.delete('/:id', async (req, res) => {
     ]);
 
     await db.run(`DELETE FROM estudiante_grupo WHERE estudiante_id = ?`, [id]);
+    await db.run(`DELETE FROM acudiente_estudiante WHERE estudiante_id = ?`, [id]);
     await db.run(`DELETE FROM estudiantes WHERE id = ?`, [id]);
 
     res.json({ message: 'Estudiante eliminado (movido a histórico)' });

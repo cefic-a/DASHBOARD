@@ -22,11 +22,20 @@ app.use(express.json());
 if (!process.env.TURSO_DATABASE_URL || !process.env.TURSO_AUTH_TOKEN) {
   console.error('ADVERTENCIA: faltan TURSO_DATABASE_URL o TURSO_AUTH_TOKEN. Configúralas en Railway → Variables.');
 }
+if (!process.env.ADMIN_USER || !process.env.ADMIN_PASSWORD || !process.env.JWT_SECRET) {
+  console.error('ADVERTENCIA: faltan ADMIN_USER, ADMIN_PASSWORD o JWT_SECRET. El login no funcionará hasta configurarlas en Railway → Variables.');
+}
 
-// Rutas
-app.use('/api/estudiantes', require('./routes/estudiantes'));
-app.use('/api/grupos', require('./routes/grupos'));
-app.use('/api/eliminados', require('./routes/eliminados'));
+const { requireAuth } = require('./middleware/auth');
+
+// Ruta pública de login
+app.use('/api/auth', require('./routes/auth'));
+
+// Rutas protegidas
+app.use('/api/estudiantes', requireAuth, require('./routes/estudiantes'));
+app.use('/api/grupos', requireAuth, require('./routes/grupos'));
+app.use('/api/eliminados', requireAuth, require('./routes/eliminados'));
+app.use('/api/acudientes', requireAuth, require('./routes/acudientes'));
 
 // Evita que un error inesperado tumbe el proceso entero
 // (lo cual dejaría el servicio sin responder y parecería un fallo de CORS).
