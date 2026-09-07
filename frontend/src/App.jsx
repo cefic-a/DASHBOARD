@@ -1,233 +1,219 @@
-import { Users, UserCheck, UserX, Activity, MessageCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import Sidebar from './components/Sidebar';
+import Navbar from './components/Navbar';
+import StatsCards from './components/StatsCards';
+import StudentTable from './components/StudentTable';
+import AnalyticsCharts from './components/AnalyticsCharts';
+import DeletedStudentsTable from './components/DeletedStudentsTable';
+import AcudientesTable from './components/AcudientesTable';
+import Login from './components/Login';
+import {
+  fetchStudents, fetchGroups, createStudent, updateStudent, deleteStudent,
+  createGroup, updateGroup, deleteGroup, fetchEliminados, restoreStudent, permanentDelete,
+  fetchAcudientes, createAcudiente, updateAcudiente, deleteAcudiente
+} from './services/api';
 
-const StatsCards = ({ students, groups, acudientes = [] }) => {
-  const total = students.length;
-  const activos = students.filter(s => s.activo).length;
-  const inactivos = total - activos;
-  const conDiscapacidad = students.filter(s => s.discapacidad === 'SI').length;
-  const porcentajeDiscapacidad = total ? ((conDiscapacidad / total) * 100).toFixed(1) : 0;
+function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+  const [students, setStudents] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [eliminados, setEliminados] = useState([]);
+  const [acudientes, setAcudientes] = useState([]);
+  const [activeTab, setActiveTab] = useState('students');
+  const [loading, setLoading] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Datos de idioma
-  const hablanNeesWewxi = students.filter(s => s.idioma === 'SI').length;
-  const noHablan = total - hablanNeesWewxi;
-  const porcentajeIdioma = total ? ((hablanNeesWewxi / total) * 100).toFixed(1) : 0;
-
-  // Género
-  const femeninos = students.filter(s => s.genero === 'FEMENINO').length;
-  const masculinos = total - femeninos;
-
-  // Tipo de documento
-  const tipoDocMap = new Map();
-  students.forEach(s => {
-    const tipo = s.tipodoc || 'Sin dato';
-    tipoDocMap.set(tipo, (tipoDocMap.get(tipo) || 0) + 1);
-  });
-  const tipoDocStats = Array.from(tipoDocMap.entries()).sort((a, b) => b[1] - a[1]);
-  const tipoDocLabels = { RC: 'Registro Civil', TI: 'Tarjeta de Identidad', CC: 'Cédula de Ciudadanía' };
-
-  // Camino del Sol / Camino de la Luna
-  const contarPorCampo = (campo) => {
-    const map = new Map();
-    students.forEach(s => {
-      const valor = s[campo];
-      if (!valor) return;
-      map.set(valor, (map.get(valor) || 0) + 1);
-    });
-    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  const loadData = async () => {
+    try {
+      const [estudiantes, grupos, eliminadosList, acudientesList] = await Promise.all([
+        fetchStudents(),
+        fetchGroups(),
+        fetchEliminados(),
+        fetchAcudientes()
+      ]);
+      setStudents(estudiantes);
+      setGroups(grupos);
+      setEliminados(eliminadosList);
+      setAcudientes(acudientesList);
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+    } finally {
+      setLoading(false);
+    }
   };
-  const caminoSolStats = contarPorCampo('caminoSol');
-  const caminoLunaStats = contarPorCampo('caminoLuna');
 
-  // Edad promedio (a partir de fechaNacimiento)
-  const edades = students
-    .map(s => s.fechaNacimiento)
-    .filter(Boolean)
-    .map(f => {
-      const nacimiento = new Date(f);
-      if (isNaN(nacimiento)) return null;
-      const hoy = new Date();
-      let edad = hoy.getFullYear() - nacimiento.getFullYear();
-      const m = hoy.getMonth() - nacimiento.getMonth();
-      if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) edad--;
-      return edad;
-    })
-    .filter(e => e !== null && e >= 0 && e < 100);
-  const edadPromedio = edades.length ? (edades.reduce((a, b) => a + b, 0) / edades.length).toFixed(1) : '-';
+  useEffect(() => {
+    if (isAuthenticated) loadData();
+  }, [isAuthenticated]);
 
-  // Acudientes
-  const totalAcudientes = acudientes.length;
-  const estudiantesConAcudienteIds = new Set();
-  acudientes.forEach(ac => (ac.estudiantesIds || []).forEach(id => estudiantesConAcudienteIds.add(id)));
-  const conAcudiente = students.filter(s => estudiantesConAcudienteIds.has(s.id)).length;
-  const sinAcudiente = total - conAcudiente;
-  const porcentajeConAcudiente = total ? ((conAcudiente / total) * 100).toFixed(1) : 0;
-
-  // Datos por grado
-  const gradosMap = new Map();
-  students.forEach(s => {
-    const grado = s.grado;
-    if (!gradosMap.has(grado)) gradosMap.set(grado, { total: 0, activos: 0, inactivos: 0 });
-    const stats = gradosMap.get(grado);
-    stats.total++;
-    if (s.activo) stats.activos++;
-    else stats.inactivos++;
-  });
-  const gradosStats = Array.from(gradosMap.entries()).sort((a,b)=>a[0]-b[0]).map(([grado, stats]) => ({ grado, ...stats, porcentajeActivos: stats.total ? Math.round((stats.activos / stats.total) * 100) : 0 }));
-
-  const getColor = (g) => {
-    const colores = ['from-blue-500', 'from-green-500', 'from-yellow-500', 'from-red-500', 'from-purple-500', 'from-pink-500', 'from-indigo-500', 'from-teal-500', 'from-orange-500', 'from-cyan-500', 'from-lime-500', 'from-emerald-500'];
-    return colores[g % colores.length] || 'from-gray-500';
+  const addStudent = async (student) => {
+    try {
+      await createStudent(student);
+      await loadData();
+    } catch (error) {
+      console.error('Error al crear estudiante:', error);
+      alert(`No se pudo crear el estudiante: ${error.message}`);
+      throw error;
+    }
   };
+
+  const editStudent = async (student) => {
+    try {
+      await updateStudent(student.id, student);
+      await loadData();
+    } catch (error) {
+      console.error('Error al actualizar estudiante:', error);
+      alert(`No se pudo actualizar el estudiante: ${error.message}`);
+      throw error;
+    }
+  };
+
+  const removeStudent = async (id, motivo) => {
+    try {
+      await deleteStudent(id, motivo);
+      await loadData();
+    } catch (error) {
+      console.error('Error al eliminar estudiante:', error);
+      alert(`No se pudo eliminar el estudiante: ${error.message}`);
+      throw error;
+    }
+  };
+
+  const addGroup = async (group) => {
+    try {
+      await createGroup(group);
+      await loadData();
+    } catch (error) {
+      console.error('Error al crear grupo:', error);
+      alert(`No se pudo crear el grupo: ${error.message}`);
+      throw error;
+    }
+  };
+
+  const editGroup = async (group) => {
+    try {
+      await updateGroup(group.id, group);
+      await loadData();
+    } catch (error) {
+      console.error('Error al actualizar grupo:', error);
+      alert(`No se pudo actualizar el grupo: ${error.message}`);
+      throw error;
+    }
+  };
+
+  const removeGroup = async (id) => {
+    try {
+      await deleteGroup(id);
+      await loadData();
+    } catch (error) {
+      console.error('Error al eliminar grupo:', error);
+      alert(`No se pudo eliminar el grupo: ${error.message}`);
+      throw error;
+    }
+  };
+
+  const handleRestore = async (id) => {
+    await restoreStudent(id);
+    await loadData();
+  };
+
+  const handlePermanentDelete = async (id) => {
+    await permanentDelete(id);
+    await loadData();
+  };
+
+  const addAcudiente = async (acudiente) => {
+    try {
+      await createAcudiente(acudiente);
+      await loadData();
+    } catch (error) {
+      console.error('Error al crear acudiente:', error);
+      alert(`No se pudo crear el acudiente: ${error.message}`);
+      throw error;
+    }
+  };
+
+  const editAcudiente = async (acudiente) => {
+    try {
+      await updateAcudiente(acudiente.id, acudiente);
+      await loadData();
+    } catch (error) {
+      console.error('Error al actualizar acudiente:', error);
+      alert(`No se pudo actualizar el acudiente: ${error.message}`);
+      throw error;
+    }
+  };
+
+  const removeAcudiente = async (id) => {
+    try {
+      await deleteAcudiente(id);
+      await loadData();
+    } catch (error) {
+      console.error('Error al eliminar acudiente:', error);
+      alert(`No se pudo eliminar el acudiente: ${error.message}`);
+      throw error;
+    }
+  };
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed(prev => !prev);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
+  };
+
+  if (!isAuthenticated) {
+    return <Login onLogin={() => setIsAuthenticated(true)} />;
+  }
+
+  if (loading) return <div className="flex items-center justify-center h-screen">Cargando...</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white rounded-xl shadow p-5 flex items-center gap-4">
-          <div className="p-3 bg-blue-100 rounded-full"><Users size={28} className="text-blue-600" /></div>
-          <div><p className="text-gray-500 text-sm">Total</p><p className="text-2xl font-bold">{total}</p></div>
-        </div>
-        <div className="bg-white rounded-xl shadow p-5 flex items-center gap-4">
-          <div className="p-3 bg-green-100 rounded-full"><UserCheck size={28} className="text-green-600" /></div>
-          <div><p className="text-gray-500 text-sm">Activos</p><p className="text-2xl font-bold">{activos}</p></div>
-        </div>
-        <div className="bg-white rounded-xl shadow p-5 flex items-center gap-4">
-          <div className="p-3 bg-red-100 rounded-full"><UserX size={28} className="text-red-600" /></div>
-          <div><p className="text-gray-500 text-sm">Inactivos</p><p className="text-2xl font-bold">{inactivos}</p></div>
-        </div>
-        <div className="bg-white rounded-xl shadow p-5 flex items-center gap-4">
-          <div className="p-3 bg-purple-100 rounded-full"><Activity size={28} className="text-purple-600" /></div>
-          <div><p className="text-gray-500 text-sm">Discapacidad</p><p className="text-2xl font-bold">{porcentajeDiscapacidad}%</p></div>
-        </div>
-        <div className="bg-white rounded-xl shadow p-5 flex items-center gap-4">
-          <div className="p-3 bg-teal-100 rounded-full"><MessageCircle size={28} className="text-teal-600" /></div>
-          <div>
-            <p className="text-gray-500 text-sm">Hablan NeesWewxi</p>
-            <p className="text-2xl font-bold">{porcentajeIdioma}%</p>
-            <p className="text-xs text-gray-400">{hablanNeesWewxi} de {total}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Estudiantes por grado - tarjetas */}
-      <div className="bg-white rounded-xl shadow p-5">
-        <h3 className="font-semibold text-gray-700 mb-3">📊 Estudiantes por grado</h3>
-       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {gradosStats.map(({ grado, total, activos, inactivos, porcentajeActivos }) => (
-            <div key={grado} className="relative overflow-hidden rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-              {/* Cabecera con degradado (ahora más compacto) */}
-              <div className={`bg-gradient-to-r ${getColor(grado)} to-${getColor(grado).replace('from', 'to')} px-3 py-2 text-white`}>
-                <div className="flex justify-between items-center">
-                  <span className="text-base font-bold">Grado {grado}</span>
-                  <span className="text-xs bg-white bg-opacity-30 px-2 py-0.5 rounded-full">{total} estudiantes</span>
-                </div>
+    <div className="flex h-screen bg-gray-100">
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} collapsed={sidebarCollapsed} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Navbar onToggleSidebar={toggleSidebar} onLogout={handleLogout} />
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          {activeTab === 'students' && (
+            <>
+              <StatsCards students={students} groups={groups} acudientes={acudientes} />
+              <div className="mt-6">
+                <StudentTable
+                  students={students}
+                  groups={groups}
+                  onAdd={addStudent}
+                  onEdit={editStudent}
+                  onDelete={removeStudent}
+                  onAddGroup={addGroup}
+                  onUpdateGroup={editGroup}
+                  onDeleteGroup={removeGroup}
+                />
               </div>
-              {/* Cuerpo (se reduce el padding y el tamaño de fuente) */}
-              <div className="p-3 bg-white">
-                <div className="flex justify-between mb-1">
-                  <div className="text-center flex-1">
-                    <p className="text-xl font-bold text-green-600">{activos}</p>
-                    <p className="text-[10px] text-gray-500">Activos</p>
-                  </div>
-                  <div className="text-center flex-1">
-                    <p className="text-xl font-bold text-red-500">{inactivos}</p>
-                    <p className="text-[10px] text-gray-500">Inactivos</p>
-                  </div>
-                </div>
-                <div className="mt-1">
-                  <div className="flex justify-between text-[10px] text-gray-500 mb-0.5">
-                    <span>Tasa actividad</span>
-                    <span>{porcentajeActivos}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-1.5">
-                    <div className="bg-green-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${porcentajeActivos}%` }}></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Género, documento, edad y acudientes */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl shadow p-5">
-          <p className="text-gray-500 text-sm mb-2">Género</p>
-          <div className="flex justify-between text-sm">
-            <span>Femenino</span><span className="font-bold">{femeninos}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>Masculino</span><span className="font-bold">{masculinos}</span>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow p-5">
-          <p className="text-gray-500 text-sm mb-2">Edad promedio</p>
-          <p className="text-2xl font-bold">{edadPromedio}{edadPromedio !== '-' && ' años'}</p>
-          <p className="text-xs text-gray-400">Con base en {edades.length} de {total} registros</p>
-        </div>
-        <div className="bg-white rounded-xl shadow p-5">
-          <p className="text-gray-500 text-sm mb-2">Con acudiente registrado</p>
-          <p className="text-2xl font-bold">{porcentajeConAcudiente}%</p>
-          <p className="text-xs text-gray-400">{conAcudiente} de {total} estudiantes</p>
-        </div>
-        <div className="bg-white rounded-xl shadow p-5">
-          <p className="text-gray-500 text-sm mb-2">Sin acudiente / Total acudientes</p>
-          <p className="text-2xl font-bold">{sinAcudiente} <span className="text-sm font-normal text-gray-400">sin registrar</span></p>
-          <p className="text-xs text-gray-400">{totalAcudientes} acudientes en total</p>
-        </div>
-      </div>
-
-      {/* Tipo de documento */}
-      <div className="bg-white rounded-xl shadow p-5">
-        <h3 className="font-semibold text-gray-700 mb-3">🪪 Estudiantes por tipo de documento</h3>
-        <div className="flex flex-wrap gap-3">
-          {tipoDocStats.map(([tipo, count]) => (
-            <div key={tipo} className="bg-gray-100 rounded-full px-3 py-1 text-sm">
-              {tipoDocLabels[tipo] || tipo}: {count}
-            </div>
-          ))}
-          {tipoDocStats.length === 0 && <p className="text-gray-500 text-sm">Sin datos.</p>}
-        </div>
-      </div>
-
-      {/* Camino del Sol y Camino de la Luna */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl shadow p-5">
-          <h3 className="font-semibold text-gray-700 mb-3">☀️ Camino del Sol</h3>
-          <div className="space-y-2">
-            {caminoSolStats.map(([valor, count]) => (
-              <div key={valor} className="flex justify-between text-sm">
-                <span>{valor}</span><span className="font-bold">{count}</span>
-              </div>
-            ))}
-            {caminoSolStats.length === 0 && <p className="text-gray-500 text-sm">Sin datos registrados.</p>}
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow p-5">
-          <h3 className="font-semibold text-gray-700 mb-3">🌙 Camino de la Luna</h3>
-          <div className="space-y-2">
-            {caminoLunaStats.map(([valor, count]) => (
-              <div key={valor} className="flex justify-between text-sm">
-                <span>{valor}</span><span className="font-bold">{count}</span>
-              </div>
-            ))}
-            {caminoLunaStats.length === 0 && <p className="text-gray-500 text-sm">Sin datos registrados.</p>}
-          </div>
-        </div>
-      </div>
-
-      {/* Grupos personalizados */}
-      <div className="bg-white rounded-xl shadow p-5">
-        <h3 className="font-semibold text-gray-700 mb-3">🏷️ Estudiantes por grupo personalizado</h3>
-        <div className="flex flex-wrap gap-3">
-          {groups.map(group => {
-            const count = students.filter(s => s.gruposIds?.includes(group.id)).length;
-            return <div key={group.id} className="bg-gray-100 rounded-full px-3 py-1 text-sm">{group.nombre}: {count}</div>;
-          })}
-          {groups.length === 0 && <p className="text-gray-500 text-sm">No hay grupos creados.</p>}
-        </div>
+            </>
+          )}
+          {activeTab === 'charts' && <AnalyticsCharts students={students} groups={groups} />}
+          {activeTab === 'acudientes' && (
+            <AcudientesTable
+              acudientes={acudientes}
+              students={students}
+              onAdd={addAcudiente}
+              onEdit={editAcudiente}
+              onDelete={removeAcudiente}
+            />
+          )}
+          {activeTab === 'deleted' && (
+            <DeletedStudentsTable
+              deleted={eliminados}
+              onRestore={handleRestore}
+              onPermanentDelete={handlePermanentDelete}
+            />
+          )}
+        </main>
       </div>
     </div>
   );
-};
+}
 
-export default StatsCards;
+export default App;
