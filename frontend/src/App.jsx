@@ -13,6 +13,7 @@ function App() {
   const [eliminados, setEliminados] = useState([]);
   const [activeTab, setActiveTab] = useState('students');
   const [loading, setLoading] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const loadData = async () => {
     try {
@@ -36,33 +37,69 @@ function App() {
   }, []);
 
   const addStudent = async (student) => {
-    await createStudent(student);
-    await loadData();
+    try {
+      await createStudent(student);
+      await loadData();
+    } catch (error) {
+      console.error('Error al crear estudiante:', error);
+      alert(`No se pudo crear el estudiante: ${error.message}`);
+      throw error;
+    }
   };
 
   const editStudent = async (student) => {
-    await updateStudent(student.id, student);
-    await loadData();
+    try {
+      await updateStudent(student.id, student);
+      await loadData();
+    } catch (error) {
+      console.error('Error al actualizar estudiante:', error);
+      alert(`No se pudo actualizar el estudiante: ${error.message}`);
+      throw error;
+    }
   };
 
   const removeStudent = async (id, motivo) => {
-    await deleteStudent(id, motivo);
-    await loadData();
+    try {
+      await deleteStudent(id, motivo);
+      await loadData();
+    } catch (error) {
+      console.error('Error al eliminar estudiante:', error);
+      alert(`No se pudo eliminar el estudiante: ${error.message}`);
+      throw error;
+    }
   };
 
   const addGroup = async (group) => {
-    await createGroup(group);
-    await loadData();
+    try {
+      await createGroup(group);
+      await loadData();
+    } catch (error) {
+      console.error('Error al crear grupo:', error);
+      alert(`No se pudo crear el grupo: ${error.message}`);
+      throw error;
+    }
   };
 
   const editGroup = async (group) => {
-    await updateGroup(group.id, group);
-    await loadData();
+    try {
+      await updateGroup(group.id, group);
+      await loadData();
+    } catch (error) {
+      console.error('Error al actualizar grupo:', error);
+      alert(`No se pudo actualizar el grupo: ${error.message}`);
+      throw error;
+    }
   };
 
   const removeGroup = async (id) => {
-    await deleteGroup(id);
-    await loadData();
+    try {
+      await deleteGroup(id);
+      await loadData();
+    } catch (error) {
+      console.error('Error al eliminar grupo:', error);
+      alert(`No se pudo eliminar el grupo: ${error.message}`);
+      throw error;
+    }
   };
 
   const handleRestore = async (id) => {
@@ -83,7 +120,7 @@ function App() {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} collapsed={sidebarCollapsed} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Navbar onToggleSidebar={toggleSidebar} />
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
