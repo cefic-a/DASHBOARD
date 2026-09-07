@@ -1,6 +1,6 @@
 import { Users, UserCheck, UserX, Activity, MessageCircle } from 'lucide-react';
 
-const StatsCards = ({ students, groups, acudientes = [] }) => {
+const StatsCards = ({ students = [], groups = [], acudientes = [] }) => {
   const total = students.length;
   const activos = students.filter(s => s.activo).length;
   const inactivos = total - activos;

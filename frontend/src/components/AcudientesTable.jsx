@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Plus, Edit, Trash2, UserCheck } from 'lucide-react';
 import AcudienteModal from './AcudienteModal';
 
-const AcudientesTable = ({ acudientes, students, onAdd, onEdit, onDelete }) => {
+const AcudientesTable = ({ acudientes = [], students = [], onAdd, onEdit, onDelete }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAcudiente, setEditingAcudiente] = useState(null);
 

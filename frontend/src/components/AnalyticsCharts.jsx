@@ -30,7 +30,7 @@ const CustomLegend = ({ data }) => {
   );
 };
 
-const AnalyticsCharts = ({ students }) => {
+const AnalyticsCharts = ({ students = [] }) => {
   // ============================
   // 1. Distribución por grado (barras)
   // ============================
