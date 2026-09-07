@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 5000;
 const corsOptions = {
   origin: ['http://localhost:5173', 'https://cefic-a.github.io'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type']
+  allowedHeaders: ['Content-Type', 'Authorization']
 };
 
 app.use(cors(corsOptions));
