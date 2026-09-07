@@ -25,35 +25,6 @@ const StatsCards = ({ students = [], groups = [], acudientes = [] }) => {
   const tipoDocStats = Array.from(tipoDocMap.entries()).sort((a, b) => b[1] - a[1]);
   const tipoDocLabels = { RC: 'Registro Civil', TI: 'Tarjeta de Identidad', CC: 'Cédula de Ciudadanía' };
 
-  // Camino del Sol / Camino de la Luna
-  const contarPorCampo = (campo) => {
-    const map = new Map();
-    students.forEach(s => {
-      const valor = s[campo];
-      if (!valor) return;
-      map.set(valor, (map.get(valor) || 0) + 1);
-    });
-    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
-  };
-  const caminoSolStats = contarPorCampo('caminoSol');
-  const caminoLunaStats = contarPorCampo('caminoLuna');
-
-  // Edad promedio (a partir de fechaNacimiento)
-  const edades = students
-    .map(s => s.fechaNacimiento)
-    .filter(Boolean)
-    .map(f => {
-      const nacimiento = new Date(f);
-      if (isNaN(nacimiento)) return null;
-      const hoy = new Date();
-      let edad = hoy.getFullYear() - nacimiento.getFullYear();
-      const m = hoy.getMonth() - nacimiento.getMonth();
-      if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) edad--;
-      return edad;
-    })
-    .filter(e => e !== null && e >= 0 && e < 100);
-  const edadPromedio = edades.length ? (edades.reduce((a, b) => a + b, 0) / edades.length).toFixed(1) : '-';
-
   // Acudientes
   const totalAcudientes = acudientes.length;
   const estudiantesConAcudienteIds = new Set();
@@ -151,20 +122,6 @@ const StatsCards = ({ students = [], groups = [], acudientes = [] }) => {
       {/* Género, documento, edad y acudientes */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl shadow p-5">
-          <p className="text-gray-500 text-sm mb-2">Género</p>
-          <div className="flex justify-between text-sm">
-            <span>Femenino</span><span className="font-bold">{femeninos}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>Masculino</span><span className="font-bold">{masculinos}</span>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow p-5">
-          <p className="text-gray-500 text-sm mb-2">Edad promedio</p>
-          <p className="text-2xl font-bold">{edadPromedio}{edadPromedio !== '-' && ' años'}</p>
-          <p className="text-xs text-gray-400">Con base en {edades.length} de {total} registros</p>
-        </div>
-        <div className="bg-white rounded-xl shadow p-5">
           <p className="text-gray-500 text-sm mb-2">Con acudiente registrado</p>
           <p className="text-2xl font-bold">{porcentajeConAcudiente}%</p>
           <p className="text-xs text-gray-400">{conAcudiente} de {total} estudiantes</p>
@@ -186,32 +143,6 @@ const StatsCards = ({ students = [], groups = [], acudientes = [] }) => {
             </div>
           ))}
           {tipoDocStats.length === 0 && <p className="text-gray-500 text-sm">Sin datos.</p>}
-        </div>
-      </div>
-
-      {/* Camino del Sol y Camino de la Luna */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl shadow p-5">
-          <h3 className="font-semibold text-gray-700 mb-3">☀️ Camino del Sol</h3>
-          <div className="space-y-2">
-            {caminoSolStats.map(([valor, count]) => (
-              <div key={valor} className="flex justify-between text-sm">
-                <span>{valor}</span><span className="font-bold">{count}</span>
-              </div>
-            ))}
-            {caminoSolStats.length === 0 && <p className="text-gray-500 text-sm">Sin datos registrados.</p>}
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow p-5">
-          <h3 className="font-semibold text-gray-700 mb-3">🌙 Camino de la Luna</h3>
-          <div className="space-y-2">
-            {caminoLunaStats.map(([valor, count]) => (
-              <div key={valor} className="flex justify-between text-sm">
-                <span>{valor}</span><span className="font-bold">{count}</span>
-              </div>
-            ))}
-            {caminoLunaStats.length === 0 && <p className="text-gray-500 text-sm">Sin datos registrados.</p>}
-          </div>
         </div>
       </div>
 
