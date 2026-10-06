@@ -17,13 +17,19 @@ app.options('*', cors(corsOptions));
 
 app.use(express.json());
 
+// Ruta de salud: usada por Render (y opcionalmente por un servicio
+// externo de "ping") para confirmar que el proceso sigue vivo.
+app.get('/', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // Aviso temprano y claro si faltan las credenciales de Turso,
 // en vez de fallar de forma confusa en la primera consulta.
 if (!process.env.TURSO_DATABASE_URL || !process.env.TURSO_AUTH_TOKEN) {
-  console.error('ADVERTENCIA: faltan TURSO_DATABASE_URL o TURSO_AUTH_TOKEN. Configúralas en Railway → Variables.');
+  console.error('ADVERTENCIA: faltan TURSO_DATABASE_URL o TURSO_AUTH_TOKEN. Configúralas en las variables de entorno del hosting.');
 }
 if (!process.env.ADMIN_USER || !process.env.ADMIN_PASSWORD || !process.env.JWT_SECRET) {
-  console.error('ADVERTENCIA: faltan ADMIN_USER, ADMIN_PASSWORD o JWT_SECRET. El login no funcionará hasta configurarlas en Railway → Variables.');
+  console.error('ADVERTENCIA: faltan ADMIN_USER, ADMIN_PASSWORD o JWT_SECRET. El login no funcionará hasta configurarlas.');
 }
 
 const { requireAuth } = require('./middleware/auth');
@@ -37,8 +43,7 @@ app.use('/api/grupos', requireAuth, require('./routes/grupos'));
 app.use('/api/eliminados', requireAuth, require('./routes/eliminados'));
 app.use('/api/acudientes', requireAuth, require('./routes/acudientes'));
 
-// Evita que un error inesperado tumbe el proceso entero
-// (lo cual dejaría el servicio sin responder y parecería un fallo de CORS).
+// Evita que un error inesperado tumbe el proceso entero.
 process.on('unhandledRejection', (reason) => {
   console.error('Unhandled Rejection:', reason);
 });
