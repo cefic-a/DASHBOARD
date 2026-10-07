@@ -297,12 +297,12 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
       <table className="min-w-full text-sm">
         <thead className="bg-gray-100">
           <tr>
+            <th className="px-3 py-3 text-left w-[6%]">Grado</th>
             <th className="px-3 py-3 text-left w-[10%]">Documento</th>
             <th className="px-3 py-3 text-left w-[18%]">Nombres y Apellidos</th>
             <th className="px-3 py-3 text-left w-[6%]">Género</th>
             <th className="px-3 py-3 text-left w-[10%]">Fecha nac.</th>
             <th className="px-3 py-3 text-left w-[5%]">Edad</th>
-            <th className="px-3 py-3 text-left w-[6%]">Grado</th>
             <th className="px-3 py-3 text-left w-[10%]">EPS</th>
             <th className="px-3 py-3 text-left w-[6%]">Discap.</th>
             <th className="px-3 py-3 text-left w-[6%]">Idioma</th>
@@ -314,6 +314,7 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
         <tbody>
           {paginated.map((student) => (
             <tr key={student.doc} className="border-t hover:bg-gray-50">
+              <td className="px-3 py-2">{student.grado ?? '—'}</td>
               <td className="px-3 py-2">{student.doc}</td>
               <td className="px-3 py-2 whitespace-normal break-words" style={{ maxWidth: '200px' }}>
                 {`${student.nombres || ''} ${student.apellidos || ''}`}
@@ -321,7 +322,6 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
               <td className="px-3 py-2">{student.genero === 'MASCULINO' ? 'M' : 'F'}</td>
               <td className="px-3 py-2">{formatFecha(student.fechaNacimiento)}</td>
               <td className="px-3 py-2">{calcularEdad(student.fechaNacimiento)}</td>
-              <td className="px-3 py-2">{student.grado ?? '—'}</td>
               <td className="px-3 py-2 truncate max-w-[100px]">{student.eps}</td>
               <td className="px-3 py-2">
                 <span className={`px-2 py-0.5 rounded-full text-xs ${student.discapacidad === 'SI' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
@@ -377,12 +377,12 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
         <table className="w-full text-xs border-collapse">
           <thead>
             <tr>
+              <th className="border px-2 py-1 text-left">Grado</th>
               <th className="border px-2 py-1 text-left">Documento</th>
               <th className="border px-2 py-1 text-left">Nombres y Apellidos</th>
               <th className="border px-2 py-1 text-left">Género</th>
               <th className="border px-2 py-1 text-left">Fecha nac.</th>
               <th className="border px-2 py-1 text-left">Edad</th>
-              <th className="border px-2 py-1 text-left">Grado</th>
               <th className="border px-2 py-1 text-left">EPS</th>
               <th className="border px-2 py-1 text-left">Discap.</th>
               <th className="border px-2 py-1 text-left">Idioma</th>
@@ -393,12 +393,12 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
           <tbody>
             {filtered.map(student => (
               <tr key={student.doc}>
+                <td className="border px-2 py-1">{student.grado ?? '—'}</td>
                 <td className="border px-2 py-1">{student.doc}</td>
                 <td className="border px-2 py-1">{`${student.nombres || ''} ${student.apellidos || ''}`}</td>
                 <td className="border px-2 py-1">{student.genero === 'MASCULINO' ? 'M' : 'F'}</td>
                 <td className="border px-2 py-1">{formatFecha(student.fechaNacimiento)}</td>
                 <td className="border px-2 py-1">{calcularEdad(student.fechaNacimiento)}</td>
-                <td className="border px-2 py-1">{student.grado ?? '—'}</td>
                 <td className="border px-2 py-1">{student.eps}</td>
                 <td className="border px-2 py-1">{student.discapacidad === 'SI' ? 'Sí' : 'No'}</td>
                 <td className="border px-2 py-1">{student.idioma === 'SI' ? 'Sí' : 'No'}</td>
