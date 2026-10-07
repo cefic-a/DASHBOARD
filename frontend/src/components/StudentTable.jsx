@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Edit, Trash2, Plus, Search, Upload } from 'lucide-react';
+import { Edit, Trash2, Plus, Search, Upload, Printer } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import StudentModal from './StudentModal';
 import GroupManager from './GroupManager';
@@ -29,6 +29,8 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
   const fileInputRef = useRef(null);
 
   // Obtener opciones únicas para filtros (manejo seguro de null/undefined)
+  // Nota: Camino Sol y Camino Luna ya no se muestran como columnas en la tabla,
+  // pero sus filtros se mantienen funcionando igual que antes.
   const discapacidadOpts = ['todos', ...new Set(students.map(s => s.discapacidad).filter(v => v))];
   const idiomaOpts = ['todos', ...new Set(students.map(s => s.idioma).filter(v => v))];
   const caminoSolOpts = ['todos', ...new Set(students.map(s => s.caminoSol).filter(v => v))];
@@ -107,6 +109,22 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
     }
     setModalOpen(false);
     setEditingStudent(null);
+  };
+
+  // =================== EXPORTAR / IMPRIMIR ===================
+  // Imprime (u ofrece "Guardar como PDF") exactamente la lista filtrada
+  // actual, sin paginar, en orientación horizontal para que quepan
+  // todas las columnas en el ancho de la hoja.
+  const handleExport = () => {
+    window.print();
+  };
+
+  const nombreGrupos = (gruposIds) => {
+    if (!gruposIds || gruposIds.length === 0) return '—';
+    return gruposIds
+      .map(gid => groups.find(g => g.id === gid)?.nombre)
+      .filter(Boolean)
+      .join(', ') || '—';
   };
 
   // =================== IMPORTAR EXCEL ===================
@@ -189,7 +207,18 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
 
   return (
     <div className="bg-white rounded-xl shadow overflow-hidden">
-      <div className="p-4 border-b flex flex-wrap gap-3 justify-between items-center">
+      {/* Estilos exclusivos para impresión/exportación */}
+      <style>{`
+        .print-area { display: none; }
+        @media print {
+          body * { visibility: hidden; }
+          .print-area, .print-area * { visibility: visible; }
+          .print-area { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
+          @page { size: landscape; margin: 1cm; }
+        }
+      `}</style>
+
+      <div className="p-4 border-b flex flex-wrap gap-3 justify-between items-center no-print">
         <h2 className="text-xl font-semibold text-gray-800">Lista de estudiantes</h2>
         <div className="flex gap-2 flex-wrap">
           <button
@@ -198,6 +227,9 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
             className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-2 disabled:opacity-50"
           >
             <Upload size={18} /> {importing ? 'Importando...' : 'Importar Excel'}
+          </button>
+          <button onClick={handleExport} className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-2">
+            <Printer size={18} /> Exportar / Imprimir
           </button>
           <button onClick={() => setGroupManagerOpen(true)} className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-2 rounded-lg text-sm">
             Gestionar grupos
@@ -218,7 +250,7 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
       />
 
       {/* Filtros */}
-      <div className="p-4 bg-gray-50 border-b flex flex-wrap gap-3">
+      <div className="p-4 bg-gray-50 border-b flex flex-wrap gap-3 no-print">
         <div className="flex items-center gap-2 bg-white rounded-lg border px-3 py-1">
           <Search size={18} className="text-gray-400" />
           <input
@@ -260,21 +292,20 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
         </select>
       </div>
 
-    {/* Tabla */}
-    <div className="overflow-x-auto">
+    {/* Tabla (pantalla) */}
+    <div className="overflow-x-auto no-print">
       <table className="min-w-full text-sm">
         <thead className="bg-gray-100">
           <tr>
             <th className="px-3 py-3 text-left w-[10%]">Documento</th>
-            <th className="px-3 py-3 text-left w-[20%]">Nombres y Apellidos</th> {/* Cambio de título */}
+            <th className="px-3 py-3 text-left w-[18%]">Nombres y Apellidos</th>
             <th className="px-3 py-3 text-left w-[6%]">Género</th>
             <th className="px-3 py-3 text-left w-[10%]">Fecha nac.</th>
             <th className="px-3 py-3 text-left w-[5%]">Edad</th>
+            <th className="px-3 py-3 text-left w-[6%]">Grado</th>
             <th className="px-3 py-3 text-left w-[10%]">EPS</th>
             <th className="px-3 py-3 text-left w-[6%]">Discap.</th>
             <th className="px-3 py-3 text-left w-[6%]">Idioma</th>
-            <th className="px-3 py-3 text-left w-[8%]">Camino Sol</th>
-            <th className="px-3 py-3 text-left w-[8%]">Camino Luna</th>
             <th className="px-3 py-3 text-left w-[10%]">Grupos</th>
             <th className="px-3 py-3 text-center w-[5%]">Estado</th>
             <th className="px-3 py-3 text-center w-[8%]">Acciones</th>
@@ -284,13 +315,13 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
           {paginated.map((student) => (
             <tr key={student.doc} className="border-t hover:bg-gray-50">
               <td className="px-3 py-2">{student.doc}</td>
-              {/* Cambio aquí: Nombres primero, luego Apellidos, sin truncar, con whitespace-normal */}
               <td className="px-3 py-2 whitespace-normal break-words" style={{ maxWidth: '200px' }}>
                 {`${student.nombres || ''} ${student.apellidos || ''}`}
               </td>
               <td className="px-3 py-2">{student.genero === 'MASCULINO' ? 'M' : 'F'}</td>
               <td className="px-3 py-2">{formatFecha(student.fechaNacimiento)}</td>
               <td className="px-3 py-2">{calcularEdad(student.fechaNacimiento)}</td>
+              <td className="px-3 py-2">{student.grado ?? '—'}</td>
               <td className="px-3 py-2 truncate max-w-[100px]">{student.eps}</td>
               <td className="px-3 py-2">
                 <span className={`px-2 py-0.5 rounded-full text-xs ${student.discapacidad === 'SI' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
@@ -298,12 +329,6 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
                 </span>
               </td>
               <td className="px-3 py-2">{student.idioma === 'SI' ? 'Sí' : 'No'}</td>
-              <td className="px-3 py-2 whitespace-normal break-words" style={{ maxWidth: '120px' }}>
-                {student.caminoSol || '—'}
-              </td>
-              <td className="px-3 py-2 whitespace-normal break-words" style={{ maxWidth: '120px' }}>
-                {student.caminoLuna || '—'}
-              </td>
               <td className="px-3 py-2">
                 {student.gruposIds && student.gruposIds.map(gid => {
                   const group = groups.find(g => g.id === gid);
@@ -321,13 +346,13 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
               </td>
             </tr>
           ))}
-          {paginated.length === 0 && <tr><td colSpan="13" className="text-center py-8 text-gray-500">No hay estudiantes</td></tr>}
+          {paginated.length === 0 && <tr><td colSpan="12" className="text-center py-8 text-gray-500">No hay estudiantes</td></tr>}
         </tbody>
       </table>
     </div>
 
       {/* Paginación */}
-      <div className="p-4 border-t flex justify-between items-center flex-wrap gap-2">
+      <div className="p-4 border-t flex justify-between items-center flex-wrap gap-2 no-print">
         <div className="flex items-center gap-2 text-sm">
           <span>Mostrar</span>
           <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }} className="border rounded px-2 py-1">
@@ -340,6 +365,49 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
           <span className="px-3 py-1">Pág. {currentPage} de {totalPages || 1}</span>
           <button disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(p => p+1)} className="px-3 py-1 border rounded disabled:opacity-50">Siguiente</button>
         </div>
+      </div>
+
+      {/* Tabla exclusiva para exportar/imprimir: toda la lista filtrada, sin paginar */}
+      <div className="print-area p-4">
+        <h2 className="text-lg font-bold mb-1">Lista de estudiantes</h2>
+        <p className="text-xs text-gray-600 mb-3">
+          Exportado el {new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
+          {' · '}{filtered.length} estudiante{filtered.length === 1 ? '' : 's'}
+        </p>
+        <table className="w-full text-xs border-collapse">
+          <thead>
+            <tr>
+              <th className="border px-2 py-1 text-left">Documento</th>
+              <th className="border px-2 py-1 text-left">Nombres y Apellidos</th>
+              <th className="border px-2 py-1 text-left">Género</th>
+              <th className="border px-2 py-1 text-left">Fecha nac.</th>
+              <th className="border px-2 py-1 text-left">Edad</th>
+              <th className="border px-2 py-1 text-left">Grado</th>
+              <th className="border px-2 py-1 text-left">EPS</th>
+              <th className="border px-2 py-1 text-left">Discap.</th>
+              <th className="border px-2 py-1 text-left">Idioma</th>
+              <th className="border px-2 py-1 text-left">Grupos</th>
+              <th className="border px-2 py-1 text-left">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(student => (
+              <tr key={student.doc}>
+                <td className="border px-2 py-1">{student.doc}</td>
+                <td className="border px-2 py-1">{`${student.nombres || ''} ${student.apellidos || ''}`}</td>
+                <td className="border px-2 py-1">{student.genero === 'MASCULINO' ? 'M' : 'F'}</td>
+                <td className="border px-2 py-1">{formatFecha(student.fechaNacimiento)}</td>
+                <td className="border px-2 py-1">{calcularEdad(student.fechaNacimiento)}</td>
+                <td className="border px-2 py-1">{student.grado ?? '—'}</td>
+                <td className="border px-2 py-1">{student.eps}</td>
+                <td className="border px-2 py-1">{student.discapacidad === 'SI' ? 'Sí' : 'No'}</td>
+                <td className="border px-2 py-1">{student.idioma === 'SI' ? 'Sí' : 'No'}</td>
+                <td className="border px-2 py-1">{nombreGrupos(student.gruposIds)}</td>
+                <td className="border px-2 py-1">{student.activo ? 'Activo' : 'Inactivo'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <StudentModal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditingStudent(null); }} onSave={handleSave} initialData={editingStudent} groups={groups} />
