@@ -80,9 +80,18 @@ async function getDb() {
     );
   `);
 
+  await runMigrations(client);
+
   // Adaptador: expone la misma API que usaba el paquete "sqlite"
   // (db.all / db.get / db.run) para no tener que tocar las rutas.
   dbInstance = {
+    // Ejecuta varias sentencias en una sola transacción (todo o nada).
+    // statements: [{ sql, args }]
+    async batch(statements) {
+      const res = await client.batch(statements, 'write');
+      return res.map(r => ({ changes: r.rowsAffected }));
+    },
+
     async all(sql, params = []) {
       const args = Array.isArray(params) ? params : [params];
       const res = await client.execute({ sql, args });
@@ -105,4 +114,32 @@ async function getDb() {
   return dbInstance;
 }
 
-module.exports = { getDb };
+// Migraciones aditivas e idempotentes: solo agregan columnas/tablas nuevas,
+// nunca borran ni modifican datos existentes. Seguras para producción.
+async function runMigrations(client) {
+  const cols = await client.execute('PRAGMA table_info(estudiantes)');
+  const names = cols.rows.map(r => r.name);
+
+  // Resultado académico del año en curso: PENDIENTE | APROBADO | REPROBADO
+  if (!names.includes('estadoAcademico')) {
+    await client.execute("ALTER TABLE estudiantes ADD COLUMN estadoAcademico TEXT DEFAULT 'PENDIENTE'");
+  }
+
+  // Historial de promociones: permite auditar y deshacer un lote completo.
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS promociones_historial (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lote TEXT NOT NULL,
+      estudiante_id TEXT NOT NULL,
+      doc TEXT,
+      gradoAnterior INTEGER,
+      gradoNuevo INTEGER,
+      resultado TEXT,
+      activoAnterior INTEGER,
+      activoNuevo INTEGER,
+      fecha TEXT NOT NULL
+    )
+  `);
+}
+
+module.exports = { getDb, runMigrations };
