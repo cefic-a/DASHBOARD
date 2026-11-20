@@ -10,7 +10,8 @@ import Login from './components/Login';
 import {
   fetchStudents, fetchGroups, createStudent, updateStudent, deleteStudent,
   createGroup, updateGroup, deleteGroup, fetchEliminados, restoreStudent, permanentDelete,
-  fetchAcudientes, createAcudiente, updateAcudiente, deleteAcudiente
+  fetchAcudientes, createAcudiente, updateAcudiente, deleteAcudiente,
+  setEstadoAcademico, promoverEstudiantes, deshacerPromocion
 } from './services/api';
 
 function App() {
@@ -75,6 +76,41 @@ function App() {
     } catch (error) {
       console.error('Error al eliminar estudiante:', error);
       alert(`No se pudo eliminar el estudiante: ${error.message}`);
+      throw error;
+    }
+  };
+
+  const changeEstadoAcademico = async (ids, estado) => {
+    try {
+      await setEstadoAcademico(ids, estado);
+      await loadData();
+    } catch (error) {
+      console.error('Error al cambiar estado académico:', error);
+      alert(`No se pudo actualizar el resultado: ${error.message}`);
+      throw error;
+    }
+  };
+
+  const promote = async () => {
+    try {
+      const r = await promoverEstudiantes();
+      await loadData();
+      alert(`Promoción realizada: ${r.promovidos || 0} promovidos, ${r.graduados || 0} graduados, ${r.reprobados || 0} repiten grado.`);
+    } catch (error) {
+      console.error('Error al promover:', error);
+      alert(`No se pudo realizar la promoción: ${error.message}`);
+      throw error;
+    }
+  };
+
+  const undoPromotion = async (lote) => {
+    try {
+      await deshacerPromocion(lote);
+      await loadData();
+      alert('Promoción deshecha correctamente.');
+    } catch (error) {
+      console.error('Error al deshacer promoción:', error);
+      alert(`No se pudo deshacer: ${error.message}`);
       throw error;
     }
   };
@@ -189,6 +225,9 @@ function App() {
                   onAddGroup={addGroup}
                   onUpdateGroup={editGroup}
                   onDeleteGroup={removeGroup}
+                  onSetEstado={changeEstadoAcademico}
+                  onPromote={promote}
+                  onUndoPromotion={undoPromotion}
                 />
               </div>
             </>

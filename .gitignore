@@ -17,3 +17,6 @@ frontend/dist/
 # Logs / sistema
 *.log
 .DS_Store
+
+# Respaldos con datos personales: nunca subir al repositorio
+backend/db/respaldos/

@@ -121,6 +121,38 @@ export const permanentDelete = async (id) => {
   return handleResponse(res, 'Error al eliminar permanentemente');
 };
 
+// ---------- Promoción de estudiantes ----------
+export const setEstadoAcademico = async (ids, estado) => {
+  const res = await fetch(`${API_URL}/promocion/estado`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ ids, estado }),
+  });
+  return handleResponse(res, 'Error al actualizar estado académico');
+};
+
+export const promoverEstudiantes = async () => {
+  const res = await fetch(`${API_URL}/promocion/promover`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ confirmar: true }),
+  });
+  return handleResponse(res, 'Error al promover estudiantes');
+};
+
+export const fetchHistorialPromociones = async () => {
+  const res = await fetch(`${API_URL}/promocion/historial`, { headers: authHeaders() });
+  return handleResponse(res, 'Error al obtener historial de promociones');
+};
+
+export const deshacerPromocion = async (lote) => {
+  const res = await fetch(`${API_URL}/promocion/deshacer/${encodeURIComponent(lote)}`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  return handleResponse(res, 'Error al deshacer la promoción');
+};
+
 export const fetchAcudientes = async () => {
   const res = await fetch(`${API_URL}/acudientes`, { headers: authHeaders() });
   return handleResponse(res, 'Error al obtener acudientes');

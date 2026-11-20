@@ -1,11 +1,20 @@
 import { useState, useRef } from 'react';
-import { Edit, Trash2, Plus, Search, Upload, Printer } from 'lucide-react';
+import { Edit, Trash2, Plus, Search, Upload, Printer, Check, XCircle, GraduationCap } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import StudentModal from './StudentModal';
 import GroupManager from './GroupManager';
 import DeleteMotivoModal from './DeleteMotivoModal';
+import PromocionModal from './PromocionModal';
 
-const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onAddGroup, onUpdateGroup, onDeleteGroup }) => {
+const RESULTADO_BADGE = {
+  APROBADO: { label: 'Aprobado', cls: 'bg-green-100 text-green-700' },
+  REPROBADO: { label: 'Reprobado', cls: 'bg-red-100 text-red-700' },
+  GRADUADO: { label: 'Graduado', cls: 'bg-indigo-100 text-indigo-700' },
+  PENDIENTE: { label: 'Pendiente', cls: 'bg-gray-100 text-gray-600' },
+};
+const resultadoDe = (s) => s.estadoAcademico || 'PENDIENTE';
+
+const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onAddGroup, onUpdateGroup, onDeleteGroup, onSetEstado, onPromote, onUndoPromotion }) => {
   // Estados para filtros y paginación
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGender, setFilterGender] = useState('todos');
@@ -24,6 +33,9 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [filterResultado, setFilterResultado] = useState('todos');
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [promocionOpen, setPromocionOpen] = useState(false);
 
   // Referencia al input file oculto
   const fileInputRef = useRef(null);
@@ -75,12 +87,35 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
     const matchesIdioma = filterIdioma === 'todos' || s.idioma === filterIdioma;
     const matchesCaminoSol = filterCaminoSol === 'todos' || s.caminoSol === filterCaminoSol;
     const matchesCaminoLuna = filterCaminoLuna === 'todos' || s.caminoLuna === filterCaminoLuna;
+    const matchesResultado = filterResultado === 'todos' || resultadoDe(s) === filterResultado;
     return matchesSearch && matchesGender && matchesActive && matchesGrade && matchesGroup &&
-           matchesDiscap && matchesIdioma && matchesCaminoSol && matchesCaminoLuna;
+           matchesDiscap && matchesIdioma && matchesCaminoSol && matchesCaminoLuna && matchesResultado;
   });
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // Selección y resultado académico
+  const toggleSelect = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const pageIds = paginated.map(s => s.id);
+  const allPageSelected = pageIds.length > 0 && pageIds.every(id => selectedIds.includes(id));
+  const toggleSelectPage = () => setSelectedIds(prev => allPageSelected
+    ? prev.filter(id => !pageIds.includes(id))
+    : [...new Set([...prev, ...pageIds])]);
+  const selectAllFiltered = () => setSelectedIds(filtered.map(s => s.id));
+
+  const handleSetEstado = async (ids, estado) => {
+    if (!onSetEstado || ids.length === 0) return;
+    try {
+      await onSetEstado(ids, estado);
+      setSelectedIds([]);
+    } catch { /* el error ya se muestra en App */ }
+  };
+
+  // Clic en el mismo estado lo devuelve a PENDIENTE
+  const toggleResultado = (student, estado) => {
+    handleSetEstado([student.id], resultadoDe(student) === estado ? 'PENDIENTE' : estado);
+  };
 
   // Manejadores
   const handleEdit = (student) => {
@@ -231,6 +266,9 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
           <button onClick={handleExport} className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-2">
             <Printer size={18} /> Exportar / Imprimir
           </button>
+          <button onClick={() => setPromocionOpen(true)} className="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 px-3 py-2 rounded-lg text-sm flex items-center gap-2">
+            <GraduationCap size={18} /> Promover grado
+          </button>
           <button onClick={() => setGroupManagerOpen(true)} className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-2 rounded-lg text-sm">
             Gestionar grupos
           </button>
@@ -274,6 +312,13 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
         <select value={selectedGrade} onChange={(e) => setSelectedGrade(e.target.value === 'todos' ? 'todos' : Number(e.target.value))} className="border rounded-lg px-3 py-1 text-sm">
           {gradosUnicos.map(g => (<option key={g} value={g}>{g === 'todos' ? 'Grado (todos)' : `Grado ${g}`}</option>))}
         </select>
+        <select value={filterResultado} onChange={(e) => { setFilterResultado(e.target.value); setCurrentPage(1); }} className="border rounded-lg px-3 py-1 text-sm">
+          <option value="todos">Resultado (todos)</option>
+          <option value="PENDIENTE">Pendiente</option>
+          <option value="APROBADO">Aprobado</option>
+          <option value="REPROBADO">Reprobado</option>
+          <option value="GRADUADO">Graduado</option>
+        </select>
         <select value={filterGroup} onChange={(e) => setFilterGroup(e.target.value)} className="border rounded-lg px-3 py-1 text-sm">
           <option value="todos">Grupo (todos)</option>
           {groups.map(g => (<option key={g.id} value={g.id}>{g.nombre}</option>))}
@@ -292,11 +337,26 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
         </select>
       </div>
 
+    {/* Barra de acciones en lote */}
+    {selectedIds.length > 0 && (
+      <div className="px-4 py-2 bg-indigo-50 border-b flex flex-wrap items-center gap-2 text-sm no-print">
+        <span className="font-medium">{selectedIds.length} seleccionado(s)</span>
+        {selectedIds.length < filtered.length && (
+          <button onClick={selectAllFiltered} className="underline text-indigo-700">Seleccionar los {filtered.length} filtrados</button>
+        )}
+        <button onClick={() => handleSetEstado(selectedIds, 'APROBADO')} className="px-3 py-1 rounded bg-green-600 text-white flex items-center gap-1"><Check size={16} /> Aprobar</button>
+        <button onClick={() => handleSetEstado(selectedIds, 'REPROBADO')} className="px-3 py-1 rounded bg-red-600 text-white flex items-center gap-1"><XCircle size={16} /> Reprobar</button>
+        <button onClick={() => handleSetEstado(selectedIds, 'PENDIENTE')} className="px-3 py-1 rounded border bg-white">Marcar pendiente</button>
+        <button onClick={() => setSelectedIds([])} className="px-3 py-1 rounded text-gray-600">Limpiar selección</button>
+      </div>
+    )}
+
     {/* Tabla (pantalla) */}
     <div className="overflow-x-auto no-print">
       <table className="min-w-full text-sm">
         <thead className="bg-gray-100">
           <tr>
+            <th className="px-3 py-3 w-[3%]"><input type="checkbox" checked={allPageSelected} onChange={toggleSelectPage} title="Seleccionar página" /></th>
             <th className="px-3 py-3 text-left w-[6%]">Grado</th>
             <th className="px-3 py-3 text-left w-[10%]">Documento</th>
             <th className="px-3 py-3 text-left w-[18%]">Nombres y Apellidos</th>
@@ -308,12 +368,14 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
             <th className="px-3 py-3 text-left w-[6%]">Idioma</th>
             <th className="px-3 py-3 text-left w-[10%]">Grupos</th>
             <th className="px-3 py-3 text-center w-[5%]">Estado</th>
+            <th className="px-3 py-3 text-center w-[9%]">Resultado</th>
             <th className="px-3 py-3 text-center w-[8%]">Acciones</th>
           </tr>
         </thead>
         <tbody>
           {paginated.map((student) => (
-            <tr key={student.doc} className="border-t hover:bg-gray-50">
+            <tr key={student.doc} className={`border-t hover:bg-gray-50 ${selectedIds.includes(student.id) ? 'bg-indigo-50' : ''}`}>
+              <td className="px-3 py-2"><input type="checkbox" checked={selectedIds.includes(student.id)} onChange={() => toggleSelect(student.id)} /></td>
               <td className="px-3 py-2">{student.grado ?? '—'}</td>
               <td className="px-3 py-2">{student.doc}</td>
               <td className="px-3 py-2 whitespace-normal break-words" style={{ maxWidth: '200px' }}>
@@ -339,6 +401,19 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
                 <span className={`inline-block w-3 h-3 rounded-full ${student.activo ? 'bg-green-500' : 'bg-red-500'}`} title={student.activo ? 'Activo' : 'Inactivo'}></span>
               </td>
               <td className="px-3 py-2 text-center">
+                <div className="flex flex-col items-center gap-1">
+                  <span className={`px-2 py-0.5 rounded-full text-xs ${RESULTADO_BADGE[resultadoDe(student)]?.cls || 'bg-gray-100'}`}>
+                    {RESULTADO_BADGE[resultadoDe(student)]?.label || resultadoDe(student)}
+                  </span>
+                  {student.activo ? (
+                    <div className="flex gap-1">
+                      <button onClick={() => toggleResultado(student, 'APROBADO')} title="Aprobar" className={`p-0.5 rounded ${resultadoDe(student) === 'APROBADO' ? 'bg-green-600 text-white' : 'text-green-700 hover:bg-green-100'}`}><Check size={16} /></button>
+                      <button onClick={() => toggleResultado(student, 'REPROBADO')} title="Reprobar" className={`p-0.5 rounded ${resultadoDe(student) === 'REPROBADO' ? 'bg-red-600 text-white' : 'text-red-700 hover:bg-red-100'}`}><XCircle size={16} /></button>
+                    </div>
+                  ) : null}
+                </div>
+              </td>
+              <td className="px-3 py-2 text-center">
                 <div className="flex justify-center gap-2">
                   <button onClick={() => handleEdit(student)} className="text-blue-600 hover:text-blue-800"><Edit size={18} /></button>
                   <button onClick={() => handleDeleteClick(student)} className="text-red-600 hover:text-red-800"><Trash2 size={18} /></button>
@@ -346,7 +421,7 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
               </td>
             </tr>
           ))}
-          {paginated.length === 0 && <tr><td colSpan="12" className="text-center py-8 text-gray-500">No hay estudiantes</td></tr>}
+          {paginated.length === 0 && <tr><td colSpan="14" className="text-center py-8 text-gray-500">No hay estudiantes</td></tr>}
         </tbody>
       </table>
     </div>
@@ -388,6 +463,7 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
               <th className="border px-2 py-1 text-left">Idioma</th>
               <th className="border px-2 py-1 text-left">Grupos</th>
               <th className="border px-2 py-1 text-left">Estado</th>
+              <th className="border px-2 py-1 text-left">Resultado</th>
             </tr>
           </thead>
           <tbody>
@@ -404,6 +480,7 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
                 <td className="border px-2 py-1">{student.idioma === 'SI' ? 'Sí' : 'No'}</td>
                 <td className="border px-2 py-1">{nombreGrupos(student.gruposIds)}</td>
                 <td className="border px-2 py-1">{student.activo ? 'Activo' : 'Inactivo'}</td>
+                <td className="border px-2 py-1">{RESULTADO_BADGE[resultadoDe(student)]?.label || resultadoDe(student)}</td>
               </tr>
             ))}
           </tbody>
@@ -411,6 +488,7 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
       </div>
 
       <StudentModal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditingStudent(null); }} onSave={handleSave} initialData={editingStudent} groups={groups} />
+      <PromocionModal isOpen={promocionOpen} onClose={() => setPromocionOpen(false)} students={students} onConfirm={onPromote} onUndo={onUndoPromotion} />
       <GroupManager isOpen={groupManagerOpen} onClose={() => setGroupManagerOpen(false)} groups={groups} onAddGroup={onAddGroup} onUpdateGroup={onUpdateGroup} onDeleteGroup={onDeleteGroup} />
       <DeleteMotivoModal isOpen={deleteModalOpen} onClose={() => { setDeleteModalOpen(false); setStudentToDelete(null); }} onConfirm={handleConfirmDelete} studentName={studentToDelete ? `${studentToDelete.apellidos} ${studentToDelete.nombres}` : ''} />
     </div>

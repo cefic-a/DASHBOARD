@@ -42,6 +42,7 @@ app.use('/api/estudiantes', requireAuth, require('./routes/estudiantes'));
 app.use('/api/grupos', requireAuth, require('./routes/grupos'));
 app.use('/api/eliminados', requireAuth, require('./routes/eliminados'));
 app.use('/api/acudientes', requireAuth, require('./routes/acudientes'));
+app.use('/api/promocion', requireAuth, require('./routes/promocion'));
 
 // Evita que un error inesperado tumbe el proceso entero.
 process.on('unhandledRejection', (reason) => {
