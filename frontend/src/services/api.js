@@ -153,6 +153,47 @@ export const deshacerPromocion = async (lote) => {
   return handleResponse(res, 'Error al deshacer la promoción');
 };
 
+// ---------- Graduados ----------
+export const fetchGraduados = async () => {
+  const res = await fetch(`${API_URL}/graduados`, { headers: authHeaders() });
+  return handleResponse(res, 'Error al obtener graduados');
+};
+
+export const createGraduado = async (graduado) => {
+  const res = await fetch(`${API_URL}/graduados`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(graduado),
+  });
+  return handleResponse(res, 'Error al registrar graduado');
+};
+
+export const updateGraduado = async (id, graduado) => {
+  const res = await fetch(`${API_URL}/graduados/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(graduado),
+  });
+  return handleResponse(res, 'Error al actualizar graduado');
+};
+
+export const deleteGraduado = async (id) => {
+  const res = await fetch(`${API_URL}/graduados/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  return handleResponse(res, 'Error al eliminar graduado');
+};
+
+export const importGraduados = async (graduados) => {
+  const res = await fetch(`${API_URL}/graduados/importar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ graduados }),
+  });
+  return handleResponse(res, 'Error al importar graduados');
+};
+
 export const fetchAcudientes = async () => {
   const res = await fetch(`${API_URL}/acudientes`, { headers: authHeaders() });
   return handleResponse(res, 'Error al obtener acudientes');

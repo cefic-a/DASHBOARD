@@ -49,8 +49,8 @@ router.post('/', async (req, res) => {
     await db.run(`
       INSERT INTO estudiantes (
         id, doc, tipodoc, apellidos, nombres, genero, fechaNacimiento,
-        eps, discapacidad, activo, grado, idioma, caminoSol, caminoLuna
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        eps, discapacidad, activo, grado, idioma, caminoSol, caminoLuna, fechaCreacion
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       id,
       doc,
@@ -65,7 +65,8 @@ router.post('/', async (req, res) => {
       grado ?? null,
       idioma || null,
       caminoSol || null,
-      caminoLuna || null
+      caminoLuna || null,
+      new Date().toISOString()
     ]);
 
     if (gruposIds && gruposIds.length) {

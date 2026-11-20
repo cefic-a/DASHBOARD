@@ -15,7 +15,8 @@ app.use(cors(corsOptions));
 // Manejo explícito de preflight para todas las rutas
 app.options('*', cors(corsOptions));
 
-app.use(express.json());
+// 2mb: permite importar listas grandes (p. ej. graduados de años anteriores)
+app.use(express.json({ limit: '2mb' }));
 
 // Ruta de salud: usada por Render (y opcionalmente por un servicio
 // externo de "ping") para confirmar que el proceso sigue vivo.
@@ -43,6 +44,7 @@ app.use('/api/grupos', requireAuth, require('./routes/grupos'));
 app.use('/api/eliminados', requireAuth, require('./routes/eliminados'));
 app.use('/api/acudientes', requireAuth, require('./routes/acudientes'));
 app.use('/api/promocion', requireAuth, require('./routes/promocion'));
+app.use('/api/graduados', requireAuth, require('./routes/graduados'));
 
 // Evita que un error inesperado tumbe el proceso entero.
 process.on('unhandledRejection', (reason) => {
