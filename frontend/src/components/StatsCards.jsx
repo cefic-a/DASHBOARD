@@ -1,4 +1,5 @@
 import { Users, UserCheck, UserX, Activity, MessageCircle } from 'lucide-react';
+import { esNuevo, GRUPO_NUEVO_NOMBRE } from '../utils/nuevos';
 
 const StatsCards = ({ students = [], groups = [], acudientes = [] }) => {
   const total = students.length;
@@ -150,6 +151,9 @@ const StatsCards = ({ students = [], groups = [], acudientes = [] }) => {
       <div className="bg-white rounded-xl shadow p-5">
         <h3 className="font-semibold text-gray-700 mb-3">🏷️ Estudiantes por grupo personalizado</h3>
         <div className="flex flex-wrap gap-3">
+          <div className="bg-emerald-100 text-emerald-800 rounded-full px-3 py-1 text-sm font-medium" title="Grupo automático: estudiantes registrados en los últimos 3 meses">
+            {GRUPO_NUEVO_NOMBRE}: {students.filter(s => esNuevo(s)).length}
+          </div>
           {groups.map(group => {
             const count = students.filter(s => s.gruposIds?.includes(group.id)).length;
             return <div key={group.id} className="bg-gray-100 rounded-full px-3 py-1 text-sm">{group.nombre}: {count}</div>;

@@ -1,4 +1,4 @@
-import { Users, BarChart3, Trash2, Menu, UserCheck } from 'lucide-react';
+import { Users, BarChart3, Trash2, Menu, UserCheck, GraduationCap } from 'lucide-react';
 import { useState } from 'react';
 
 const Sidebar = ({ activeTab, setActiveTab, collapsed }) => {
@@ -9,6 +9,7 @@ const Sidebar = ({ activeTab, setActiveTab, collapsed }) => {
     { id: 'students', label: 'Estudiantes', icon: Users },
     { id: 'charts', label: 'Estadísticas', icon: BarChart3 },
     { id: 'acudientes', label: 'Acudientes', icon: UserCheck },
+    { id: 'graduados', label: 'Graduados', icon: GraduationCap },
     { id: 'deleted', label: 'Eliminados', icon: Trash2 },
   ];
 

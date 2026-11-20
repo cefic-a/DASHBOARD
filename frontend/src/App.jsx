@@ -7,11 +7,13 @@ import AnalyticsCharts from './components/AnalyticsCharts';
 import DeletedStudentsTable from './components/DeletedStudentsTable';
 import AcudientesTable from './components/AcudientesTable';
 import Login from './components/Login';
+import GraduadosTable from './components/GraduadosTable';
 import {
   fetchStudents, fetchGroups, createStudent, updateStudent, deleteStudent,
   createGroup, updateGroup, deleteGroup, fetchEliminados, restoreStudent, permanentDelete,
   fetchAcudientes, createAcudiente, updateAcudiente, deleteAcudiente,
-  setEstadoAcademico, promoverEstudiantes, deshacerPromocion
+  setEstadoAcademico, promoverEstudiantes, deshacerPromocion,
+  fetchGraduados, createGraduado, updateGraduado, deleteGraduado, importGraduados
 } from './services/api';
 
 function App() {
@@ -20,22 +22,26 @@ function App() {
   const [groups, setGroups] = useState([]);
   const [eliminados, setEliminados] = useState([]);
   const [acudientes, setAcudientes] = useState([]);
+  const [graduados, setGraduados] = useState([]);
   const [activeTab, setActiveTab] = useState('students');
   const [loading, setLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const loadData = async () => {
     try {
-      const [estudiantes, grupos, eliminadosList, acudientesList] = await Promise.all([
+      const [estudiantes, grupos, eliminadosList, acudientesList, graduadosList] = await Promise.all([
         fetchStudents(),
         fetchGroups(),
         fetchEliminados(),
-        fetchAcudientes()
+        fetchAcudientes(),
+        // Si el backend aún no tiene la ruta de graduados, no bloquea el resto
+        fetchGraduados().catch(() => [])
       ]);
       setStudents(estudiantes);
       setGroups(grupos);
       setEliminados(eliminadosList);
       setAcudientes(acudientesList);
+      setGraduados(graduadosList);
     } catch (error) {
       console.error('Error cargando datos:', error);
     } finally {
@@ -114,6 +120,22 @@ function App() {
       throw error;
     }
   };
+
+  const conRecarga = (fn, msg) => async (...args) => {
+    try {
+      const r = await fn(...args);
+      await loadData();
+      return r;
+    } catch (error) {
+      console.error(`${msg}:`, error);
+      alert(`${msg}: ${error.message}`);
+      throw error;
+    }
+  };
+  const addGraduado = conRecarga(createGraduado, 'No se pudo registrar el graduado');
+  const editGraduado = conRecarga((g) => updateGraduado(g.id, g), 'No se pudo actualizar el graduado');
+  const removeGraduado = conRecarga(deleteGraduado, 'No se pudo eliminar el graduado');
+  const uploadGraduados = conRecarga(importGraduados, 'No se pudieron importar los graduados');
 
   const addGroup = async (group) => {
     try {
@@ -240,6 +262,15 @@ function App() {
               onAdd={addAcudiente}
               onEdit={editAcudiente}
               onDelete={removeAcudiente}
+            />
+          )}
+          {activeTab === 'graduados' && (
+            <GraduadosTable
+              graduados={graduados}
+              onAdd={addGraduado}
+              onEdit={editGraduado}
+              onDelete={removeGraduado}
+              onImport={uploadGraduados}
             />
           )}
           {activeTab === 'deleted' && (

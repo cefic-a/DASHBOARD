@@ -41,6 +41,8 @@ router.post('/promover', async (req, res) => {
   }
   const fecha = new Date().toISOString();
   const lote = `L${Date.now()}`;
+  // Año lectivo que se cierra (hora de Colombia)
+  const anio = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota', year: 'numeric' }));
   try {
     const db = await getDb();
     await db.batch([
@@ -58,6 +60,17 @@ router.post('/promover', async (req, res) => {
           WHERE activo = 1 AND grado IS NOT NULL AND estadoAcademico IN ('APROBADO', 'REPROBADO')
         `,
         args: [lote, GRADO_MAXIMO, GRADO_MAXIMO, fecha]
+      },
+      {
+        // Copia a la sección de graduados (año en curso) a los de grado 11 aprobados
+        sql: `
+          INSERT OR IGNORE INTO graduados
+            (id, doc, tipodoc, apellidos, nombres, genero, fechaNacimiento, anioGraduacion, estudiante_id, lote, fechaRegistro)
+          SELECT 'g' || lower(hex(randomblob(8))), doc, tipodoc, apellidos, nombres, genero, fechaNacimiento, ?, id, ?, ?
+          FROM estudiantes
+          WHERE activo = 1 AND estadoAcademico = 'APROBADO' AND grado >= ?
+        `,
+        args: [anio, lote, fecha, GRADO_MAXIMO]
       },
       {
         sql: `UPDATE estudiantes SET grado = grado + 1, estadoAcademico = 'PENDIENTE'
@@ -135,6 +148,7 @@ router.post('/deshacer/:lote', async (req, res) => {
         `,
         args: [lote, lote, lote, lote]
       },
+      { sql: 'DELETE FROM graduados WHERE lote = ?', args: [lote] },
       { sql: 'DELETE FROM promociones_historial WHERE lote = ?', args: [lote] }
     ]);
 

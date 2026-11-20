@@ -5,6 +5,7 @@ import StudentModal from './StudentModal';
 import GroupManager from './GroupManager';
 import DeleteMotivoModal from './DeleteMotivoModal';
 import PromocionModal from './PromocionModal';
+import { esNuevo, finNuevo, GRUPO_NUEVO_ID, GRUPO_NUEVO_NOMBRE, MESES_NUEVO } from '../utils/nuevos';
 
 const RESULTADO_BADGE = {
   APROBADO: { label: 'Aprobado', cls: 'bg-green-100 text-green-700' },
@@ -82,7 +83,8 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
     const matchesGender = filterGender === 'todos' || s.genero === filterGender;
     const matchesActive = filterActive === 'todos' || (filterActive === 'activo' ? s.activo : !s.activo);
     const matchesGrade = selectedGrade === 'todos' || s.grado === selectedGrade;
-    const matchesGroup = filterGroup === 'todos' || (s.gruposIds && s.gruposIds.includes(filterGroup));
+    const matchesGroup = filterGroup === 'todos' ||
+      (filterGroup === GRUPO_NUEVO_ID ? esNuevo(s) : (s.gruposIds && s.gruposIds.includes(filterGroup)));
     const matchesDiscap = filterDiscapacidad === 'todos' || s.discapacidad === filterDiscapacidad;
     const matchesIdioma = filterIdioma === 'todos' || s.idioma === filterIdioma;
     const matchesCaminoSol = filterCaminoSol === 'todos' || s.caminoSol === filterCaminoSol;
@@ -154,12 +156,12 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
     window.print();
   };
 
-  const nombreGrupos = (gruposIds) => {
-    if (!gruposIds || gruposIds.length === 0) return '—';
-    return gruposIds
+  const nombreGrupos = (student) => {
+    const nombres = (student.gruposIds || [])
       .map(gid => groups.find(g => g.id === gid)?.nombre)
-      .filter(Boolean)
-      .join(', ') || '—';
+      .filter(Boolean);
+    if (esNuevo(student)) nombres.unshift(GRUPO_NUEVO_NOMBRE);
+    return nombres.join(', ') || '—';
   };
 
   // =================== IMPORTAR EXCEL ===================
@@ -321,6 +323,7 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
         </select>
         <select value={filterGroup} onChange={(e) => setFilterGroup(e.target.value)} className="border rounded-lg px-3 py-1 text-sm">
           <option value="todos">Grupo (todos)</option>
+          <option value={GRUPO_NUEVO_ID}>{GRUPO_NUEVO_NOMBRE} (últimos {MESES_NUEVO} meses)</option>
           {groups.map(g => (<option key={g.id} value={g.id}>{g.nombre}</option>))}
         </select>
         <select value={filterDiscapacidad} onChange={(e) => setFilterDiscapacidad(e.target.value)} className="border rounded-lg px-3 py-1 text-sm">
@@ -392,6 +395,12 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
               </td>
               <td className="px-3 py-2">{student.idioma === 'SI' ? 'Sí' : 'No'}</td>
               <td className="px-3 py-2">
+                {esNuevo(student) && (
+                  <span className="inline-block bg-emerald-100 text-emerald-700 font-semibold rounded px-2 py-0.5 text-xs mr-1 mb-1"
+                    title={`Registrado el ${new Date(student.fechaCreacion).toLocaleDateString('es-CO')} · deja de ser nuevo el ${finNuevo(student.fechaCreacion).toLocaleDateString('es-CO')}`}>
+                    {GRUPO_NUEVO_NOMBRE}
+                  </span>
+                )}
                 {student.gruposIds && student.gruposIds.map(gid => {
                   const group = groups.find(g => g.id === gid);
                   return group ? <span key={gid} className="inline-block bg-gray-100 rounded px-2 py-0.5 text-xs mr-1 mb-1">{group.nombre}</span> : null;
@@ -478,7 +487,7 @@ const StudentTable = ({ students = [], groups = [], onAdd, onEdit, onDelete, onA
                 <td className="border px-2 py-1">{student.eps}</td>
                 <td className="border px-2 py-1">{student.discapacidad === 'SI' ? 'Sí' : 'No'}</td>
                 <td className="border px-2 py-1">{student.idioma === 'SI' ? 'Sí' : 'No'}</td>
-                <td className="border px-2 py-1">{nombreGrupos(student.gruposIds)}</td>
+                <td className="border px-2 py-1">{nombreGrupos(student)}</td>
                 <td className="border px-2 py-1">{student.activo ? 'Activo' : 'Inactivo'}</td>
                 <td className="border px-2 py-1">{RESULTADO_BADGE[resultadoDe(student)]?.label || resultadoDe(student)}</td>
               </tr>

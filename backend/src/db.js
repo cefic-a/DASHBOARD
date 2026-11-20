@@ -125,6 +125,41 @@ async function runMigrations(client) {
     await client.execute("ALTER TABLE estudiantes ADD COLUMN estadoAcademico TEXT DEFAULT 'PENDIENTE'");
   }
 
+  // Fecha en que se registró el estudiante (para el grupo automático NUEVO).
+  // Los estudiantes existentes quedan con NULL: no se consideran nuevos.
+  if (!names.includes('fechaCreacion')) {
+    await client.execute('ALTER TABLE estudiantes ADD COLUMN fechaCreacion TEXT');
+  }
+
+  // Graduados por año. Se llenan al promover (grado 11 aprobado) o
+  // subiendo graduados de años anteriores. Un documento solo puede
+  // graduarse una vez por año.
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS graduados (
+      id TEXT PRIMARY KEY,
+      doc TEXT NOT NULL,
+      tipodoc TEXT,
+      apellidos TEXT NOT NULL,
+      nombres TEXT NOT NULL,
+      genero TEXT,
+      fechaNacimiento TEXT,
+      anioGraduacion INTEGER NOT NULL,
+      estudiante_id TEXT,
+      lote TEXT,
+      observaciones TEXT,
+      fechaRegistro TEXT NOT NULL,
+      UNIQUE (doc, anioGraduacion)
+    )
+  `);
+
+  // Registro de migraciones de datos que deben correr una sola vez.
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS migraciones_aplicadas (
+      nombre TEXT PRIMARY KEY,
+      fecha TEXT NOT NULL
+    )
+  `);
+
   // Historial de promociones: permite auditar y deshacer un lote completo.
   await client.execute(`
     CREATE TABLE IF NOT EXISTS promociones_historial (
@@ -140,6 +175,33 @@ async function runMigrations(client) {
       fecha TEXT NOT NULL
     )
   `);
+
+  // Una sola vez: pasar a "graduados" a quienes se graduaron en promociones
+  // hechas antes de que existiera la sección (mismo lote, para que
+  // "deshacer" también los quite).
+  await correrUnaVez(client, '2026-11-graduados-desde-historial', [
+    {
+      sql: `
+        INSERT OR IGNORE INTO graduados
+          (id, doc, tipodoc, apellidos, nombres, genero, fechaNacimiento, anioGraduacion, estudiante_id, lote, fechaRegistro)
+        SELECT 'g' || lower(hex(randomblob(8))), e.doc, e.tipodoc, e.apellidos, e.nombres, e.genero, e.fechaNacimiento,
+               CAST(substr(h.fecha, 1, 4) AS INTEGER), e.id, h.lote, h.fecha
+        FROM promociones_historial h
+        JOIN estudiantes e ON e.id = h.estudiante_id
+        WHERE h.resultado = 'APROBADO' AND h.activoAnterior = 1 AND h.activoNuevo = 0
+      `,
+      args: []
+    }
+  ]);
+}
+
+async function correrUnaVez(client, nombre, statements) {
+  const ya = await client.execute({ sql: 'SELECT 1 FROM migraciones_aplicadas WHERE nombre = ?', args: [nombre] });
+  if (ya.rows.length) return;
+  await client.batch([
+    ...statements,
+    { sql: 'INSERT INTO migraciones_aplicadas (nombre, fecha) VALUES (?, ?)', args: [nombre, new Date().toISOString()] }
+  ], 'write');
 }
 
 module.exports = { getDb, runMigrations };
